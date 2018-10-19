@@ -12,6 +12,7 @@ class update_c_d_u(base):
         self.alpha = args.alpha
         self.lmbda = args.lmbda
         self.gamma = args.gamma
+        self.pretrained_steps = args.pretrained_steps
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
 
@@ -24,6 +25,7 @@ class update_c_d_u(base):
 
     def train(self, epoch):
         for idx, data in enumerate(self.dataloader, 1):
+            step = (epoch - 1) * (len(self.dataloader.dataset) // self.batch_size) + idx
             lesion_data, lesion_labels, _, lesion_gradient, real_data, normal_labels, _, normal_gradient = data
             if self.use_gpu:
                 lesion_data, lesion_labels, normal_gradient = lesion_data.cuda(), lesion_labels.cuda(), normal_gradient.unsqueeze(
@@ -72,40 +74,40 @@ class update_c_d_u(base):
             self.d_optimizer.step()
 
             # update u
-            self.u_optimizer.zero_grad()
-            dis_output, _ = self.d(fake_data)
-            d_loss_ = -torch.mean(dis_output)
+            if step > self.pretrained_steps:
+                self.u_optimizer.zero_grad()
+                dis_output, _ = self.d(fake_data)
+                d_loss_ = -torch.mean(dis_output)
 
-            real_data_ = self.auto_encoder(real_data)
-            u_loss_ = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-            u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
-            u_d_loss.backward()
+                real_data_ = self.auto_encoder(real_data)
+                u_loss_ = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
+                u_d_loss.backward()
 
-            self.u_optimizer.step()
+                self.u_optimizer.step()
 
-            w_distance = d_real_loss.item() + d_fake_loss.item()
-            step = epoch * len(self.dataloader.dataset) + idx
-            info = {
-                    'classifier_loss': (1 - self.lmbda) * c_loss.item(),
-                    'unet_loss': self.gamma * u_loss_.item(),
-                    'adversial_loss': self.alpha * d_loss_.item(),
-                    'loss': u_loss.item(),
-                    'w_distance': w_distance,
-                    'lr': self.get_lr()
-            }
-            for tag, value in info.items():
-                self.logger.scalar_summary(tag, value, step)
+                w_distance = d_real_loss.item() + d_fake_loss.item()
+                info = {
+                        'classifier_loss': (1 - self.lmbda) * c_loss.item(),
+                        'unet_loss': self.gamma * u_loss_.item(),
+                        'adversial_loss': self.alpha * d_loss_.item(),
+                        'loss': u_loss.item(),
+                        'w_distance': w_distance,
+                        'lr': self.get_lr()
+                }
+                for tag, value in info.items():
+                    self.logger.scalar_summary(tag, value, step)
 
-            if idx % self.interval == 0:
-                log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
-                      'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(l1_loss)' % (
-                          epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
-                          (1 - self.lmbda) * c_loss.item(),
-                          d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
-                          w_distance,
-                          u_d_loss.item(), self.alpha * d_loss_.item(), self.gamma * u_loss_.item())
-                print(log)
-                self.log_lst.append(log)
+                if idx % self.interval == 0:
+                    log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
+                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(l1_loss)' % (
+                              epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
+                              (1 - self.lmbda) * c_loss.item(),
+                              d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
+                              w_distance,
+                              u_d_loss.item(), self.alpha * d_loss_.item(), self.gamma * u_loss_.item())
+                    print(log)
+                    self.log_lst.append(log)
 
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
@@ -120,5 +122,6 @@ class update_c_d_u(base):
         attributes['alpha'] = self.alpha
         attributes['lmbda'] = self.lmbda
         attributes['gamma'] = self.gamma
+        attributes['pretrained_steps'] = self.pretrained_steps
 
         return attributes
