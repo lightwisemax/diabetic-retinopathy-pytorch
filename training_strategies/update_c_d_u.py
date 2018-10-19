@@ -80,7 +80,9 @@ class update_c_d_u(base):
                 d_loss_ = -torch.mean(dis_output)
 
                 real_data_ = self.auto_encoder(real_data)
-                u_loss_ = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                u_loss_ = normal_l1_loss + lesion_l1_loss
                 u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
                 u_d_loss.backward()
 
@@ -100,12 +102,13 @@ class update_c_d_u(base):
 
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
-                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(l1_loss)' % (
+                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
                               epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
                               (1 - self.lmbda) * c_loss.item(),
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
-                              u_d_loss.item(), self.alpha * d_loss_.item(), self.gamma * u_loss_.item())
+                              u_d_loss.item(), self.alpha * d_loss_.item(),
+                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item())
                     print(log)
                     self.log_lst.append(log)
 
