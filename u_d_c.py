@@ -34,7 +34,6 @@ def parse_args():
     parser.add_argument('--eta', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--pretrained_steps', type=int, default=0, help='pretrained steps')
     parser.add_argument('--debug', action='store_true', default=False, help='mode:training or debug')
-    parser.add_argument('--is_saved_completely', action='store_true', default=False, help='save outputs completely or not')
     return parser.parse_args()
 
 
@@ -53,7 +52,6 @@ def main():
     trainer.save_running_script(script_path)
     trainer.main()
     trainer.save_log()
-    trainer.save_all_results()
 
 
 if __name__ == '__main__':

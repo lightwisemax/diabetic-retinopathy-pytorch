@@ -26,7 +26,6 @@ class base(object):
         """
         self.debug = args.debug
         self.prefix = args.prefix
-        self.is_saved_completely = args.is_saved_completely
         self.pretrain_unet_path = args.pretrain_unet_path
         self.is_pretrained_unet = args.is_pretrained_unet
 
@@ -105,6 +104,7 @@ class base(object):
         self.plot_hist('%s/score_distribution.png' % prefix_path, real_data_score, fake_data_score)
         torch.save(self.auto_encoder.state_dict(), add_prefix(prefix_path, 'g.pkl'))
         torch.save(self.d.state_dict(), add_prefix(prefix_path, 'd.pkl'))
+        torch.save(self.classifier.state_dict(), add_prefix(prefix_path, 'c.pkl'))
         print('save model parameters successfully when epoch=%d' % epoch)
 
     def main(self):
@@ -262,26 +262,3 @@ class base(object):
         for param_group in self.d_optimizer.param_groups:
             lr += [param_group['lr']]
         return lr[0]
-
-    def save_all_results(self):
-        if not self.is_saved_completely:
-            return
-        for (lesion_data, _, lesion_names, _, real_data, _, normal_names, _) in self.dataloader:
-            if self.use_gpu:
-                lesion_data, real_data = lesion_data.cuda(), real_data.cuda()
-            phase = 'lesion_data'
-            prefix_path = '%s/all_results/%s' % (self.prefix, phase)
-            lesion_output, _ = self.d(self.auto_encoder(lesion_data))
-            for idx in range(self.batch_size):
-                single_image = lesion_data[idx:(idx + 1), :, :, :]
-                single_name = lesion_names[idx]
-                self.save_single_image(prefix_path, single_name, single_image)
-
-            phase = 'normal_data'
-            prefix_path = '%s/all_results/%s' % (self.prefix, phase)
-            normal_output, _ = self.d(real_data)
-            for idx in range(self.batch_size):
-                single_image = real_data[idx:(idx + 1), :, :, :]
-                single_name = normal_names[idx]
-                self.save_single_image(prefix_path, single_name, single_image)
-        print('save all results completely.')
