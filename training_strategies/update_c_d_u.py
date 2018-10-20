@@ -10,6 +10,7 @@ class update_c_d_u(base):
     def __init__(self, args):
         base.__init__(self, args)
         self.alpha = args.alpha
+        self.sigma = args.sigma
         self.lmbda = args.lmbda
         self.gamma = args.gamma
         self.pretrained_steps = args.pretrained_steps
@@ -41,7 +42,7 @@ class update_c_d_u(base):
             c_loss = self.cross_entropy(self.classifier(code - inputs), labels)
             u_loss = (gradients * self.l1_criterion(code, inputs)).mean()
 
-            u_c_loss = self.lmbda * u_loss + (1 - self.lmbda) * c_loss
+            u_c_loss = self.lmbda * u_loss + self.sigma * c_loss
             u_c_loss.backward()
             self.u_optimizer.step()
             self.c_optimizer.step()
@@ -90,7 +91,7 @@ class update_c_d_u(base):
 
                 w_distance = d_real_loss.item() + d_fake_loss.item()
                 info = {
-                        'classifier_loss': (1 - self.lmbda) * c_loss.item(),
+                        'classifier_loss': self.sigma * c_loss.item(),
                         'unet_loss': self.gamma * u_loss_.item(),
                         'adversial_loss': self.alpha * d_loss_.item(),
                         'loss': u_loss.item(),
@@ -104,7 +105,7 @@ class update_c_d_u(base):
                     log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
                           'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
                               epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
-                              (1 - self.lmbda) * c_loss.item(),
+                              self.sigma * c_loss.item(),
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
                               u_d_loss.item(), self.alpha * d_loss_.item(),
@@ -126,5 +127,6 @@ class update_c_d_u(base):
         attributes['lmbda'] = self.lmbda
         attributes['gamma'] = self.gamma
         attributes['pretrained_steps'] = self.pretrained_steps
+        attributes['sigma'] = self.sigma
 
         return attributes
