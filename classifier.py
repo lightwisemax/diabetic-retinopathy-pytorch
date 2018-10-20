@@ -61,7 +61,7 @@ def main():
     # class_names=['LESION', 'NORMAL']
     class_names = train_loader.dataset.class_names
     print(class_names)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss().cuda()
 
     # learning rate decay per epochs
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
@@ -190,7 +190,7 @@ def load_dataset():
         print('load easy-classified dataset with 128 without boundary successfully!!!')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in "
-                         "['./data/data_augu']")
+                         "['./data/target_128']")
 
     train_loader = DataLoader(train_dataset,
                               batch_size=args.batch_size,
