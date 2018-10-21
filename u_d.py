@@ -6,6 +6,7 @@ python u_d.py -b=90 -e=250 -i=12 -p=gan49 -l=4.9 -a=0.1 -n=2 -k=2 --step_size=20
 """
 import sys
 import argparse
+import torch
 
 
 sys.path.append('./')
@@ -42,6 +43,7 @@ def parse_args():
     parser.add_argument('--dowmsampling', type=int ,default=4, help='dowmsampling times in discriminator')
     parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
     parser.add_argument('--pretrained_epochs', type=int , default=0, help='pretrained d')
+    parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
 
     args = parser.parse_args()
 

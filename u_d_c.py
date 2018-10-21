@@ -3,6 +3,7 @@ reference: https://github.com/znxlwm/pytorch-generative-model-collections
 """
 import argparse
 import sys
+import torch
 
 sys.path.append('./')
 from training_strategies import *
@@ -32,8 +33,10 @@ def parse_args():
     parser.add_argument('--gamma', '-g', type=float, help='weight of u in u & d')
     parser.add_argument('--alpha', '-a', type=float, help='weight of d in u & d')
     parser.add_argument('--eta', type=float, default=10.0, help='gradient penalty')
+    parser.add_argument('--epsilon', type=float, default=0.996, help='learning rate exponential decay step')
     parser.add_argument('--pretrained_steps', type=int, default=0, help='pretrained steps')
     parser.add_argument('--debug', action='store_true', default=False, help='mode:training or debug')
+    parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
     return parser.parse_args()
 
 
@@ -48,7 +51,6 @@ def main():
         print('3)fix C & D, update U')
     else:
         raise ValueError("the training strategies must in ['update_u_c_d_u']")
-
     trainer.save_running_script(script_path)
     trainer.main()
     trainer.save_log()

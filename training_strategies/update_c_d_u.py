@@ -13,6 +13,7 @@ class update_c_d_u(base):
         self.sigma = args.sigma
         self.lmbda = args.lmbda
         self.gamma = args.gamma
+        self.epsilon = args.epsilon
         self.pretrained_steps = args.pretrained_steps
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
@@ -117,9 +118,9 @@ class update_c_d_u(base):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(0.9, 0.999))
-        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=0.996)
-        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=0.996)
-        self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=0.996)
+        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=self.epsilon)
+        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=self.epsilon)
+        self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=self.epsilon)
 
     def __dict__(self):
         attributes = self.attribute2dict()
@@ -128,5 +129,6 @@ class update_c_d_u(base):
         attributes['gamma'] = self.gamma
         attributes['pretrained_steps'] = self.pretrained_steps
         attributes['sigma'] = self.sigma
+        attributes['epsilon'] = self.epsilon
 
         return attributes

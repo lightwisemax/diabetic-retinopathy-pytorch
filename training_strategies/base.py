@@ -30,7 +30,6 @@ class base(object):
         self.is_pretrained_unet = args.is_pretrained_unet
 
         self.use_gpu = torch.cuda.is_available()
-        self.gpu_counts = torch.cuda.device_count()
         self.epoch_interval = 1 if self.debug else 50
         self.power = args.power
         self.data = args.data
@@ -64,6 +63,11 @@ class base(object):
 
         self.save_init_paras()
         self.get_optimizer()
+        self.save_hyperparameters(args)
+
+    def save_hyperparameters(self, args):
+        write(vars(args), add_prefix(self.prefix, 'para.txt'))
+        print('save hyperparameters successfully.')
 
     def train(self, epoch):
         pass
@@ -124,34 +128,6 @@ class base(object):
         total_ptime = time.time() - start_time
         print('Training complete in {:.0f}m {:.0f}s'.format(
             total_ptime // 60, total_ptime % 60))
-        write(self.__dict__(), add_prefix(self.prefix, 'paras.txt'))
-        print('save hyperparameters successfully.')
-
-    def __dict__(self):
-        pass
-
-    def attribute2dict(self):
-        return {
-            'debug': self.debug,
-            'prefix': self.prefix,
-            'pretrain_unet_path': self.pretrain_unet_path,
-            'is_pretrained_unet': self.is_pretrained_unet,
-            'use_gpu': self.use_gpu,
-            'gpu_counts': self.gpu_counts,
-            'epoch_interval': self.epoch_interval,
-            'k': self.power,
-            'data': self.data,
-            'batch_size': self.batch_size,
-            'gan_type': self.gan_type,
-            'u_depth': self.u_depth,
-            'd_depth': self.d_depth,
-            'dowmsampling': self.dowmsampling,
-            'lr': self.lr,
-            'beta1': self.beta1,
-            'eta': self.eta,
-            'interval': self.interval,
-            'epochs': self.epochs
-        }
 
     def get_optimizer(self):
         pass
