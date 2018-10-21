@@ -3,9 +3,8 @@ from torch.autograd import grad
 from torch import nn
 from torch.optim import lr_scheduler
 
-from models.unet import UNet
 from u_d.base import base
-from utils.util import append2xlsx, get_today, weight_to_cpu
+from utils.util import append2xlsx, get_today
 
 
 class wgan_gp(base):
@@ -88,13 +87,6 @@ class wgan_gp(base):
                     print(log)
                     self.log_lst.append(log)
 
-    def __dict__(self):
-        attributes = self.attribute2dict()
-        attributes['lmbda'] = self.lmbda
-        attributes['alpha'] = self.alpha
-        attributes['n_update_gan'] = self.n_update_gan
-        attributes['pretrained_epochs'] = self.pretrained_epochs
-        return attributes
 
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))

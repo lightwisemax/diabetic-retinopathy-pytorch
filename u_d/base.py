@@ -40,7 +40,6 @@ class base(object):
         self.beta1 = args.beta1
 
         self.training_strategies = args.training_strategies
-        self.gpu_counts = torch.cuda.device_count()
         self.epoch_interval = 1 if self.debug else 50
 
         self.logger = Logger(add_prefix(self.prefix, 'tensorboard'))
@@ -60,6 +59,11 @@ class base(object):
             raise RuntimeWarning('there is no gpu available.')
         self.save_init_paras()
         self.get_optimizer()
+        self.save_hyperparameters(args)
+
+    def save_hyperparameters(self, args):
+        write(vars(args), add_prefix(self.prefix, 'para.txt'))
+        print('save hyperparameters successfully.')
 
     def get_lr(self):
         lr = []
@@ -129,7 +133,6 @@ class base(object):
             self.para2xlsx('./assert/new_dataset_experiment_results.xlsx')
             print('Training complete in {:.0f}m {:.0f}s'.format(
                 total_ptime // 60, total_ptime % 60))
-        write(self.__dict__(), add_prefix(self.prefix, 'paras.txt'))
 
 
     def validate(self, epoch):
@@ -263,31 +266,6 @@ class base(object):
                 top = name
                 break
         return dict(self.d.named_parameters())[top].grad, dict(self.d.named_parameters())[bottom].grad
-
-    def attribute2dict(self):
-        return {'data': self.data,
-                'gan_type': self.gan_type,
-                'd_depth': self.d_depth,
-                'dowmsampling': self.dowmsampling,
-                'power': self.power,
-                'batch_size': self.batch_size,
-                'use_gpu': self.use_gpu,
-                'u_depth': self.u_depth,
-                'is_pretrained_unet': self.is_pretrained_unet,
-                'pretrain_unet_path': self.pretrain_unet_path,
-                'lr': self.lr,
-                'debug': self.debug,
-                'prefix': self.prefix,
-                'epochs': self.epochs,
-                'epoch_interval': self.epoch_interval,
-                'training_strategies': self.training_strategies,
-                'gpus': self.gpu_counts,
-                'beta1': self.beta1,
-                'gamma': self.gamma
-                }
-
-    def __dict__(self):
-        pass
 
     def train(self, epoch):
         pass
