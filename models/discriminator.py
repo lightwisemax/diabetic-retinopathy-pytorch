@@ -68,7 +68,7 @@ class MultiScale(nn.Module):
         feature3 = x
         x = torch.cat((self.avg_pooling(feature1), self.avg_pooling(feature2), self.avg_pooling(feature3)), 1)
         x = self.fc(x)
-        return x, None
+        return x
 
 
 class ResNet(nn.Module):
@@ -117,7 +117,7 @@ class ResNet(nn.Module):
 
         x = self.fc(x)
 
-        return x, None
+        return x
 
 
 class ConvBatchNormLeaky(nn.Module):
@@ -153,9 +153,7 @@ class ConvBatchNormLeaky(nn.Module):
         self.down_convs = nn.ModuleList(down_conv)
         self.conv = nn.ModuleList(conv)
         self.last_size = math.ceil(self.size / 2 ** self.downsampling)
-        self.dis_fc = nn.Sequential(nn.Linear(self.outs, self.output_dim))
-        self.aux_fc = nn.Sequential(nn.Linear(self.outs, 2))
-        self.log_softmax = nn.LogSoftmax(dim=1)
+        self.fc = nn.Sequential(nn.Linear(self.outs, self.output_dim))
 
         initialize_weights(self)
         print('the last feature size is (%d, %d)' % (self.last_size, self.last_size))
@@ -167,9 +165,8 @@ class ConvBatchNormLeaky(nn.Module):
         for module in self.conv:
             x = module(x)
         x = F.avg_pool2d(x, kernel_size=x.size()[2:]).squeeze()
-        fc_aux = self.aux_fc(x)
-        fc_dis = self.dis_fc(x)
-        return fc_dis, self.log_softmax(fc_aux)
+        x = self.fc(x)
+        return x
 
 
 def get_discriminator(dis_type, depth, dowmsampling):
@@ -222,9 +219,9 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(SEED)
 
     train_loader = test_data_loader()
-    # d = ConvBatchNormLeaky(7, 4)
+    d = ConvBatchNormLeaky(7, 4)
     # d = MultiScale(7, 4)
-    d = ResNet(BasicBlock, [2, 2, 2, 2])
+    # d = ResNet(BasicBlock, [2, 2, 2, 2])
 
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
