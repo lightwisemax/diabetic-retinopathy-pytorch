@@ -15,7 +15,7 @@ from models.resnet import resnet18
 from models.unet import UNet
 from utils.Logger import Logger
 from utils.read_data import ConcatDataset
-from utils.util import add_prefix, weight_to_cpu, rgb2gray, write_list, copy
+from utils.util import add_prefix, weight_to_cpu, rgb2gray, write_list, copy, write
 
 plt.switch_backend('agg')
 
@@ -124,6 +124,8 @@ class base(object):
         total_ptime = time.time() - start_time
         print('Training complete in {:.0f}m {:.0f}s'.format(
             total_ptime // 60, total_ptime % 60))
+        write(self.__dict__(), add_prefix(self.prefix, 'paras.txt'))
+        print('save hyperparameters successfully.')
 
     def __dict__(self):
         pass
