@@ -145,7 +145,7 @@ class base(object):
                 lesion_data, real_data = lesion_data.cuda(), real_data.cuda()
             phase = 'lesion_data'
             prefix_path = '%s/epoch_%d/%s' % (self.prefix, epoch, phase)
-            lesion_output, _ = self.d(self.unet(lesion_data))
+            lesion_output= self.d(self.unet(lesion_data))
             fake_data_score += list(lesion_output.squeeze().cpu().data.numpy().flatten())
 
             for idx in range(self.batch_size):
@@ -157,7 +157,7 @@ class base(object):
 
             phase = 'normal_data'
             prefix_path = '%s/epoch_%d/%s' % (self.prefix, epoch, phase)
-            normal_output, _ = self.d(real_data)
+            normal_output = self.d(real_data)
             real_data_score += list(normal_output.squeeze().cpu().data.numpy().flatten())
 
             for idx in range(self.batch_size):

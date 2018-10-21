@@ -29,15 +29,15 @@ class wgan_gp(base):
             self.d_optimizer.zero_grad()
             fake_data = self.unet(lesion_data)
 
-            real_dis_output, _ = self.d(real_data)
-            fake_dis_output, _ = self.d(fake_data.detach())
+            real_dis_output = self.d(real_data)
+            fake_dis_output = self.d(fake_data.detach())
 
             theta = torch.rand((real_data.size(0), 1, 1, 1))
             if self.use_gpu:
                 theta = theta.cuda()
             x_hat = theta * real_data.data + (1 - theta) * fake_data.data
             x_hat.requires_grad = True
-            pred_hat, _ = self.d(x_hat)
+            pred_hat = self.d(x_hat)
             if self.use_gpu:
                 gradients = grad(outputs=pred_hat, inputs=x_hat, grad_outputs=torch.ones(pred_hat.size()).cuda(),
                                  create_graph=True, retain_graph=True, only_inputs=True)[0]
@@ -59,7 +59,7 @@ class wgan_gp(base):
             if epoch > self.pretrained_epochs and idx % self.n_update_gan == 0:
                 self.u_optimizer.zero_grad()
 
-                dis_output, _ = self.d(fake_data)
+                dis_output = self.d(fake_data)
                 d_loss_ = -torch.mean(dis_output)
 
                 real_data_ = self.unet(real_data)
