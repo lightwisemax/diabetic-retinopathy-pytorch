@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--gamma', '-g', type=float, help='weight of u in u & d')
     parser.add_argument('--alpha', '-a', type=float, help='weight of d in u & d')
     parser.add_argument('--eta', type=float, default=10.0, help='gradient penalty')
-    parser.add_argument('--epsilon', type=float, default=0.996, help='learning rate exponential decay step')
+    parser.add_argument('--epsi', type=float, default=0.996, help='learning rate exponential decay step')
     parser.add_argument('--pretrained_steps', type=int, default=0, help='pretrained steps')
     parser.add_argument('--debug', action='store_true', default=False, help='mode:training or debug')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')

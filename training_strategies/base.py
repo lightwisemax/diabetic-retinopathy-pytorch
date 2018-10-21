@@ -34,6 +34,7 @@ class base(object):
         self.power = args.power
         self.data = args.data
         self.batch_size = args.batch_size
+        self.epsi = args.epsi
 
         self.gan_type = args.gan_type
         self.u_depth = args.u_depth
