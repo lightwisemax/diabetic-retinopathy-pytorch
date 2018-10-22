@@ -14,6 +14,7 @@ class update_c_d_u(base):
         self.sigma = args.sigma
         self.lmbda = args.lmbda
         self.gamma = args.gamma
+        self.theta = args.theta
         self.pretrained_steps = args.pretrained_steps
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
@@ -87,8 +88,8 @@ class update_c_d_u(base):
                 lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
                 # add total variable loss as a regularization term
                 tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
-                u_loss_ = normal_l1_loss + lesion_l1_loss + tv_loss
-                u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
+                u_loss_ = normal_l1_loss + lesion_l1_loss
+                u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_ + self.theta * tv_loss
                 u_d_loss.backward()
 
                 self.u_optimizer.step()
@@ -113,7 +114,7 @@ class update_c_d_u(base):
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
                               u_d_loss.item(), self.alpha * d_loss_.item(),
-                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(), self.gamma * tv_loss.item())
+                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(), self.theta * tv_loss.item())
                     print(log)
                     self.log_lst.append(log)
 

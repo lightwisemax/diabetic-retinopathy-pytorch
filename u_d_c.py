@@ -32,6 +32,7 @@ def parse_args():
     parser.add_argument('--sigma', '-s', type=float, help='weight of c between u and c')
     parser.add_argument('--gamma', '-g', type=float, help='weight of u in u & d')
     parser.add_argument('--alpha', '-a', type=float, help='weight of d in u & d')
+    parser.add_argument('--theta', '-t', type=float, help='weight of total variation loss')
     parser.add_argument('--eta', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--epsi', type=float, default=0.996, help='learning rate exponential decay step')
     parser.add_argument('--pretrained_steps', type=int, default=0, help='pretrained steps')
