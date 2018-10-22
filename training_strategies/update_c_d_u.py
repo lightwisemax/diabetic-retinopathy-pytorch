@@ -86,7 +86,7 @@ class update_c_d_u(base):
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
                 lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
                 # add total variable loss as a regularization term
-                tv_loss = self.tv_loss_criterion(fake_data)
+                tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
                 u_loss_ = normal_l1_loss + lesion_l1_loss + tv_loss
                 u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
                 u_d_loss.backward()
