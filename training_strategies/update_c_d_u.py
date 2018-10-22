@@ -4,6 +4,7 @@ from torch.autograd import grad
 from torch.optim import lr_scheduler
 
 from training_strategies.base import base
+from utils.tv_loss import TVLoss
 
 
 class update_c_d_u(base):
@@ -16,6 +17,7 @@ class update_c_d_u(base):
         self.pretrained_steps = args.pretrained_steps
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
+        self.tv_loss_criterion = TVLoss().cuda()
 
     def shuffle(self, lesion_data, normal_data, lesion_labels, normal_labels, lesion_gradients, normal_gradients):
         inputs, labels, gradients = torch.cat((lesion_data, normal_data), 0), torch.cat(
@@ -83,7 +85,9 @@ class update_c_d_u(base):
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
                 lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
-                u_loss_ = normal_l1_loss + lesion_l1_loss
+                # add total variable loss as a regularization term
+                tv_loss = self.tv_loss_criterion(fake_data)
+                u_loss_ = normal_l1_loss + lesion_l1_loss + tv_loss
                 u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_
                 u_d_loss.backward()
 
@@ -103,31 +107,20 @@ class update_c_d_u(base):
 
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
-                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
+                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)+%.3f(tv_loss)' % (
                               epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
                               self.sigma * c_loss.item(),
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
                               u_d_loss.item(), self.alpha * d_loss_.item(),
-                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item())
+                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(), self.gamma * tv_loss.item())
                     print(log)
                     self.log_lst.append(log)
 
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(0.9, 0.999))
+        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(self.beta1, 0.999))
         self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=self.epsi)
         self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=self.epsi)
         self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=self.epsi)
-
-    def __dict__(self):
-        attributes = self.attribute2dict()
-        attributes['alpha'] = self.alpha
-        attributes['lmbda'] = self.lmbda
-        attributes['gamma'] = self.gamma
-        attributes['pretrained_steps'] = self.pretrained_steps
-        attributes['sigma'] = self.sigma
-        attributes['epsilon'] = self.epsilon
-
-        return attributes
