@@ -85,7 +85,8 @@ class update_c_d_u(base):
 
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                # lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                lesion_l1_loss = self.l1_criterion(fake_data, lesion_data).mean()
                 # add total variable loss as a regularization term
                 tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
                 u_loss_ = normal_l1_loss + lesion_l1_loss
