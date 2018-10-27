@@ -18,8 +18,11 @@ import torchvision.transforms as transforms
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 
+
 sys.path.append('./')
-from models.resnet import ResNet, BasicBlock
+from models.resnet import resnet18
+from contrast.models import vgg
+
 from utils.util import set_prefix, write, add_prefix
 from utils.read_data import EasyDR
 
@@ -36,6 +39,7 @@ parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printin
 parser.add_argument('--data', '-d', default='./data/target_128', help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
+parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet18'])
 
 
 best_acc = 0.0
@@ -47,7 +51,8 @@ def main():
     print('there is %d gpus in usage' % (device_counts))
     # save source script
     set_prefix(args.prefix, __file__)
-    model = ResNet(BasicBlock, [2, 2, 2, 2])
+    model = model_selector(args.model_type)
+    print(model)
     if args.cuda:
         model = DataParallel(model).cuda()
     else:
@@ -88,6 +93,13 @@ def main():
     # save running parameter setting to json
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
+def model_selector(model_type):
+    if model_type == 'vgg':
+        return vgg()
+    elif model_type == 'resnet18':
+        return resnet18(is_ptrtrained=False)
+    else:
+        raise ValueError('')
 
 def compute_validate_meter(model, best_model_path, val_loader):
     model.eval()
