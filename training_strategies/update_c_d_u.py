@@ -76,7 +76,7 @@ class update_c_d_u(base):
             d_loss = d_real_loss + d_fake_loss + gradient_penalty
             d_loss.backward()
             self.d_optimizer.step()
-            if step <= self.pretrained_steps:
+            if step <= self.pretrained_steps and idx % self.interval == 0:
                 log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty)' % (
                           epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
                           self.sigma * c_loss.item(),
@@ -129,7 +129,7 @@ class update_c_d_u(base):
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(0.9, 0.999))
+        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(self.beta1, 0.999))
         self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=self.epsi)
         self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=self.epsi)
         self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=self.epsi)
