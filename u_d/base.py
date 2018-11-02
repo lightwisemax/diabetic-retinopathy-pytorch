@@ -8,8 +8,8 @@ from torch.nn import DataParallel
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.discriminator import get_discriminator
-from models.unet import UNet
+from networks.discriminator import get_discriminator
+from networks.unet import UNet
 from utils.Logger import Logger
 from utils.read_data import ConcatDataset
 from utils.util import copy, add_prefix, weight_to_cpu, write, rgb2gray, write_list
