@@ -20,9 +20,9 @@ from utils.read_data import EasyDR
 
 sys.path.append('./')
 from utils.Logger import Logger
-from models.unet import UNet
-from models.resnet import resnet18
-from models.Locator import Locator
+from networks.unet import UNet
+from networks.resnet import resnet18
+from networks.Locator import Locator
 from utils.util import set_prefix, write, add_prefix, to_np, to_variable, rgb2gray, weight_to_cpu
 
 plt.switch_backend('agg')

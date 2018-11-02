@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from models.ops import BatchNorm, initialize_weights, BasicBlock
+from networks.ops import BatchNorm, initialize_weights, BasicBlock
 from utils.read_data import EasyDR
 
 

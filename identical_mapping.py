@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 sys.path.append('./')
 from utils.Logger import Logger
 from utils.read_data import EasyDR
-from models.unet import UNet
+from networks.unet import UNet
 from utils.util import set_prefix, write, add_prefix, rgb2gray
 from benchmark.ssim import SSIM
 

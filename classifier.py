@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 
 
 sys.path.append('./')
-from models.resnet import resnet18
+from networks.resnet import resnet18
 from contrast.models import vgg
 
 from utils.util import set_prefix, write, add_prefix

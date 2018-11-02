@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
 sys.path.append('../')
-from models.unet import UNet
+from networks.unet import UNet
 from utils.read_data import ConcatDataset
 from utils.util import weight_to_cpu, rgb2gray, add_prefix
 
