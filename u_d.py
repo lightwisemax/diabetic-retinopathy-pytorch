@@ -17,7 +17,8 @@ from explore import *
 def parse_args():
     parser = argparse.ArgumentParser(description='Training Custom Defined Model')
     parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp',
-                        choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization'], help='training strategies')
+                        choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization', 'training_iterative'],
+                        help='training strategies')
     parser.add_argument('-b', '--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, default=350, help='training epochs')
     parser.add_argument('--lr', type=float, default=2e-4, help='learning rate')
@@ -63,6 +64,9 @@ def main():
         script_path = './explore/dcgan_.py'
         trainer = dcgan_(args)
         print('just update d with dcgan and analyse gradients')
+    elif args.training_strategies == 'training_iterative':
+        script_path = './u_d/training_iterative.py'
+        trainer = training_iterative(args)
     else:
         raise ValueError('')
     trainer.save_running_script(script_path)
