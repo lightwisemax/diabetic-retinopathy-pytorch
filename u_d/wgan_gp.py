@@ -13,7 +13,6 @@ class wgan_gp(base):
         self.lmbda = args.lmbda
         self.alpha = args.alpha
         self.pretrained_epochs = args.pretrained_epochs
-        self.aux_criterion = nn.NLLLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         print('discriminator will be updated for %d firstly.' % self.pretrained_epochs)
 
