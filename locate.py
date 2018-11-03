@@ -41,9 +41,6 @@ parser.add_argument('--co_power', '-k', default=2, type=int, help='power of grad
 parser.add_argument('--prefix', '-p', default='locate', type=str, help='folder prefix')
 parser.add_argument('--pretrain_unet', default='./identical_mapping40/identical_mapping.pkl', type=str,
                     help='pretrained unet saved path')
-parser.add_argument('--pretrain_classifier', default='./classifier05/model_best.pth.tar', type=str,
-                    help='')
-parser.add_argument('--is_pretrained_classifier', '-c', action='store_true', help='')
 
 
 def main():
@@ -120,9 +117,9 @@ def load_dataset():
 
 
 def model_builder():
-    classifier = resnet18(args.data, args.is_pretrained_classifier, args.pretrain_classifier)
+    classifier = resnet18(is_ptrtrained=False)
     print('use resnet18')
-    auto_encoder = UNet(3, depth=4, in_channels=3, has_conv1x1=True, has_bn=False)
+    auto_encoder = UNet(3, depth=5, in_channels=3)
     auto_encoder.load_state_dict(weight_to_cpu(args.pretrain_unet))
     print('load pretrained unet!')
 
