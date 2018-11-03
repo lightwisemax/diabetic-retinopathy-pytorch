@@ -124,8 +124,10 @@ class base(object):
 
             self.train(epoch)
             if epoch % self.epoch_interval == 0:
-                self.validate(epoch)
-        self.validate(self.epochs)
+                with torch.no_grad():
+                    self.validate(epoch)
+        with torch.no_grad():
+            self.validate(self.epochs)
 
         total_ptime = time.time() - start_time
         if not self.debug:

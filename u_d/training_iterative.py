@@ -1,4 +1,5 @@
 import torch
+import math
 import time
 from torch.autograd import grad
 from torch import nn
@@ -10,20 +11,38 @@ class training_iterative(base):
         base.__init__(self, args)
         self.lmbda = args.lmbda
         self.alpha = args.alpha
+        self.epochs_lst = [-1]
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
+        self.sequential_epochs = args.sequential_epochs
 
     def main(self):
         print('training start!')
         start_time = time.time()
+
+        self.set_training_order()
         for epoch in range(1, self.epochs + 1):
             self.train(epoch)
-            if epoch % 4 == 0:
-                self.validate(epoch)
-        self.validate(self.epochs)
+            if epoch % self.sequential_epochs == 0:
+                with torch.no_grad():
+                    self.validate(epoch)
+        with torch.no_grad():
+            self.validate(self.epochs)
 
         total_ptime = time.time() - start_time
         print('Training complete in {:.0f}m {:.0f}s'.format(
             total_ptime // 60, total_ptime % 60))
+
+    def set_training_order(self):
+        group_nums = int(math.ceil(self.epochs / self.sequential_epochs))
+        flag = True
+        for i in range(group_nums):
+            if flag:
+                self.epochs_lst.extend([0] * self.sequential_epochs)
+                flag = False
+            else:
+                self.epochs_lst.extend([1] * self.sequential_epochs)
+                flag = True
+        print(self.epochs_lst)
 
     def train(self, epoch):
         for idx, data in enumerate(self.dataloader, 1):
@@ -33,7 +52,7 @@ class training_iterative(base):
                     1).cuda()
                 real_data, normal_labels = real_data.cuda(), normal_labels.cuda()
 
-            if int(epoch / 20) % 2 == 0:
+            if self.epochs_lst[epoch] == 0:
                 # training network: update d
                 self.d_optimizer.zero_grad()
                 fake_data = self.unet(lesion_data)
@@ -72,7 +91,7 @@ class training_iterative(base):
                     self.log_lst.append(log)
 
 
-            if int(epoch / 20) % 2 == 1:
+            if self.epochs_lst[epoch] == 1:
                 self.u_optimizer.zero_grad()
                 fake_data = self.unet(lesion_data)
                 dis_output = self.d(fake_data)
