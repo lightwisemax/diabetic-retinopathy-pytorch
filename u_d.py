@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
     parser.add_argument('--pretrained_epochs', type=int , default=0, help='pretrained d')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
+    parser.add_argument('--sequential_epochs', required=True, type=int, help='sequential training epoch nums in script tranining_iterative.py')
 
     args = parser.parse_args()
 
