@@ -6,6 +6,7 @@ from torch import nn
 
 from u_d.base import base
 
+
 class training_iterative(base):
     def __init__(self, args):
         base.__init__(self, args)
@@ -14,6 +15,8 @@ class training_iterative(base):
         self.epochs_lst = [-1]
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         self.sequential_epochs = args.sequential_epochs
+        self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
+        self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
 
     def main(self):
         print('training start!')
@@ -46,11 +49,10 @@ class training_iterative(base):
 
     def train(self, epoch):
         for idx, data in enumerate(self.dataloader, 1):
-            lesion_data, lesion_labels, _, _, real_data, normal_labels, _, normal_gradient = data
+            lesion_data, _, _, lesion_gradient, real_data, _, _, normal_gradient = data
             if self.use_gpu:
-                lesion_data, lesion_labels, normal_gradient = lesion_data.cuda(), lesion_labels.cuda(), normal_gradient.unsqueeze(
-                    1).cuda()
-                real_data, normal_labels = real_data.cuda(), normal_labels.cuda()
+                normal_gradient, lesion_gradient = normal_gradient.unsqueeze(1).cuda(), lesion_gradient.unsqueeze(1).cuda()
+                real_data, lesion_data = real_data.cuda(), lesion_data.cuda()
 
             if self.epochs_lst[epoch] == 0:
                 # training network: update d
@@ -74,7 +76,6 @@ class training_iterative(base):
                                      create_graph=True, retain_graph=True, only_inputs=True)[0]
                 gradient_penalty = self.gamma * ((gradients.view(gradients.size()[0], -1).norm(2, 1) - 1) ** 2).mean()
 
-
                 d_real_loss = -torch.mean(real_dis_output)
                 d_fake_loss = torch.mean(fake_dis_output)
 
@@ -86,10 +87,10 @@ class training_iterative(base):
                 self.d_optimizer.step()
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), w_distance=%.3f' % \
-                          (epoch, self.epochs, d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(), w_distance)
+                          (epoch, self.epochs, d_loss.item(), d_real_loss.item(), d_fake_loss.item(),
+                           gradient_penalty.item(), w_distance)
                     print(log)
                     self.log_lst.append(log)
-
 
             if self.epochs_lst[epoch] == 1:
                 self.u_optimizer.zero_grad()
@@ -98,21 +99,16 @@ class training_iterative(base):
                 d_loss_ = -torch.mean(dis_output)
 
                 real_data_ = self.unet(real_data)
-                u_loss_ = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                u_loss = self.lmbda * u_loss_ + self.alpha * d_loss_
+                normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
-
                 self.u_optimizer.step()
 
                 if idx % self.interval == 0:
-                    log = '[%d/%d] %.3f(u_d_loss)=%.3f(d_loss)+%.3f(l1_loss)' % (
-                              epoch, self.epochs, u_loss.item(),
-                              self.alpha * d_loss_.item(), self.lmbda * u_loss_.item())
+                    log = '[%d/%d] %.3f(u_d_loss)=%.3f(d_loss)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
+                        epoch, self.epochs, u_loss.item(),
+                        self.alpha * d_loss_.item(),
+                        self.lmbda * normal_l1_loss.item(), self.lmbda * lesion_l1_loss.item())
                     print(log)
                     self.log_lst.append(log)
-
-
-    def get_optimizer(self):
-        self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-
