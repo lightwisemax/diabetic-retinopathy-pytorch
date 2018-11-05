@@ -1,6 +1,7 @@
 import torch
 import math
 import time
+import numpy as np
 from torch.autograd import grad
 from torch import nn
 
@@ -101,7 +102,7 @@ class training_iterative(base):
                 real_data_ = self.unet(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
                 lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
-                u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
+                u_loss = self.lmbda * (5.0 * normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
                 self.u_optimizer.step()
 
@@ -109,6 +110,6 @@ class training_iterative(base):
                     log = '[%d/%d] %.3f(u_d_loss)=%.3f(d_loss)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
                         epoch, self.epochs, u_loss.item(),
                         self.alpha * d_loss_.item(),
-                        self.lmbda * normal_l1_loss.item(), self.lmbda * lesion_l1_loss.item())
+                        self.lmbda * 5.0 * normal_l1_loss.item(), self.lmbda * lesion_l1_loss.item())
                     print(log)
                     self.log_lst.append(log)

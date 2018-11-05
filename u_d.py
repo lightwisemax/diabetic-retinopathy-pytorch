@@ -33,7 +33,7 @@ def parse_args():
                         help='whether use pre-training unet.')
     parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping45/identical_mapping.pkl',
                         help='pretrained unet saved path')
-    parser.add_argument('-d', '--data', type=str, default='./data/gan', choices=['./data/gan'],
+    parser.add_argument('-d', '--data', type=str, default='./data/gan_h_flip', choices=['./data/gan', './data/gan_h_flip'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='conv_bn_leaky_relu',
