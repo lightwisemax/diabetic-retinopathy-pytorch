@@ -16,8 +16,8 @@ from explore import *
 
 # SEED = 10000
 # SEED = 1000
-# SEED = 100
-SEED = 0
+SEED = 100
+# SEED = 0
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 np.random.seed(SEED)
