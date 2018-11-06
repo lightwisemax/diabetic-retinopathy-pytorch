@@ -66,7 +66,7 @@ class BatchNorm(nn.Module):
         self.conv = nn.Conv2d(in_channels, out_channels, 3, stride=stride, padding=1)
         self.bn = nn.BatchNorm2d(out_channels)
         self.leaky_relu = nn.LeakyReLU(0.2)
-        self.drop_out = nn.Dropout2d(0.3)
+        self.drop_out = nn.Dropout2d(0.25)
 
     def forward(self, x):
         return self.drop_out(self.leaky_relu(self.bn(self.conv(x))))
