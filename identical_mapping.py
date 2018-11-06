@@ -36,7 +36,7 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool,
                     help='use gpu or not')
 parser.add_argument('-i', '--interval_freq', default=12, type=int,
                     help='printing log frequence')
-parser.add_argument('-d', '--data', default='./data/target_128',
+parser.add_argument('-d', '--data', default='./data/flip',
                     help='path to dataset')
 parser.add_argument('-p', '--prefix', required=True, type=str,
                     help='folder prefix')
@@ -84,6 +84,7 @@ def main():
     print('-' * 10)
     for epoch in range(args.epochs):
         train(train_loader, model, optimizer, criterion, epoch)
+
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
@@ -98,10 +99,12 @@ def load_dataset():
     global mean, std
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
-    if args.data == './data/target_128':
-        mean = [0.5, 0.5, 0.5]
-        std = [0.5, 0.5, 0.5]
-        print('load targeted easy-classified diabetic retina dataset with size 128 to pretrain unet successfully!!')
+    mean = [0.5, 0.5, 0.5]
+    std = [0.5, 0.5, 0.5]
+    if args.data == './data/flip':
+        print('load horizontal flipped DR with size 128 successfully!!')
+    elif args.data == './data/target_128':
+        print('load DR with size 128 successfully!!')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in ['./data/target_128']")
     normalize = transforms.Normalize(mean, std)
@@ -169,12 +172,12 @@ def train(train_loader, model, optimizer, criterion, epoch):
         for tag, value in info.items():
             logger.scalar_summary(tag, value, step)
         if idx % args.interval_freq == 0:
-            print('training unet_loss: {:.4f}'.format(loss.item()))
+            print('unet_loss: {:.4f}'.format(loss.item()))
 
 
 def validate(model, val_loader, train_loader):
     class_names = val_loader.dataset.class_names
-    for phase in ['training', 'val']:
+    for phase in ['train', 'val']:
         for name in class_names:
             saved_path = '%s/%s/%s' % (args.prefix, phase, name.lower())
             if not os.path.exists(saved_path):
@@ -182,7 +185,7 @@ def validate(model, val_loader, train_loader):
     model.eval()
 
     # save a sample from validate dataset
-    phase = 'training'
+    phase = 'train'
     sample_inputs, sample_labels, sample_images_name, _ = next(iter(train_loader))
     if args.cuda:
         sample_inputs = sample_inputs.cuda()

@@ -5,6 +5,7 @@ usage:
 python u_d.py -b=90 -e=250 -i=12 -p=gan49 -l=4.9 -a=0.1 -n=2 -k=2 --step_size=200 --d_depth=6 --dowmsampling=3 --u_depth=4
 """
 import sys
+import numpy as np
 import argparse
 import torch
 
@@ -13,6 +14,13 @@ sys.path.append('./')
 from u_d import *
 from explore import *
 
+# SEED = 10000
+# SEED = 1000
+# SEED = 100
+SEED = 0
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+np.random.seed(SEED)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Training Custom Defined Model')
@@ -29,10 +37,9 @@ def parse_args():
     parser.add_argument('--gamma', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
     parser.add_argument('-n', '--n_update_gan', type=int, default=1, help='update gan(unet) frequence')
-    parser.add_argument('-u', '--is_pretrained_unet', action='store_true', default=False,
-                        help='whether use pre-training unet.')
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping45/identical_mapping.pkl',
-                        help='pretrained unet saved path')
+    parser.add_argument('-u', '--is_pretrained_unet', action='store_true', help='pretrained unet or not')
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping49/identical_mapping.pkl', help='pretrained unet')
+    parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
     parser.add_argument('-d', '--data', type=str, default='./data/gan_h_flip', choices=['./data/gan', './data/gan_h_flip'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
@@ -43,9 +50,8 @@ def parse_args():
     parser.add_argument('--u_depth', type=int, default=5, help='unet dpeth')
     parser.add_argument('--dowmsampling', type=int ,default=4, help='dowmsampling times in discriminator')
     parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
-    parser.add_argument('--pretrained_epochs', type=int , default=0, help='pretrained d')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
-    parser.add_argument('--sequential_epochs', required=True, type=int, help='sequential training epoch nums in script tranining_iterative.py')
+    parser.add_argument('--sequential_epochs', default=0, type=int, help='sequential training epoch nums in script tranining_iterative.py')
 
     args = parser.parse_args()
 
@@ -65,9 +71,9 @@ def main():
         script_path = './explore/dcgan_.py'
         trainer = dcgan_(args)
         print('just update d with dcgan and analyse gradients')
-    elif args.training_strategies == 'training_iterative':
-        script_path = './u_d/training_iterative.py'
-        trainer = training_iterative(args)
+    # elif args.training_strategies == 'training_iterative':
+    #     script_path = './u_d/training_iterative.py'
+    #     trainer = training_iterative(args)
     else:
         raise ValueError('')
     trainer.save_running_script(script_path)

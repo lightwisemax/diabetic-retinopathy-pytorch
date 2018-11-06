@@ -37,13 +37,13 @@ class MultiScale(nn.Module):
             down_conv.append(BatchNorm(ins, self.outs))
             ins = self.outs
         self.final_outs += self.outs
-        self.down_convs = nn.ModuleList(down_conv)
+        self.down_convs = nn.Sequential(*down_conv)
 
         convs = []
         for _ in range(self.depth - self.downsampling):
             convs.append(BatchNorm(self.outs, self.outs))
         self.final_outs += self.outs
-        self.convs = nn.ModuleList(convs)
+        self.convs = nn.Sequential(*convs)
         self.last_size = math.ceil(self.size / 2 ** self.downsampling)
 
         self.fc = nn.Sequential(
@@ -219,10 +219,13 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(SEED)
 
     train_loader = test_data_loader()
-    d = ConvBatchNormLeaky(7, 4)
-    # d = MultiScale(7, 4)
+    # d = ConvBatchNormLeaky(7, 4)
+    d = MultiScale(7, 4)
     # d = ResNet(BasicBlock, [2, 2, 2, 2])
 
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
     print(d(tensor))
+
+    import torchvision.models as models
+    models.vgg11()

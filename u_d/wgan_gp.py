@@ -53,25 +53,34 @@ class wgan_gp(base):
             # it's unnecessary to save gradient
             # self.save_gradient(epoch, idx)
             self.d_optimizer.step()
+            w_distance = d_real_loss.item() + d_fake_loss.item()
+            if epoch <= self.pretrained_epochs and idx % self.interval == 0:
+                log = '[%d/%d] %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty),w_distance=%.3f' % (
+                          epoch, self.epochs,
+                          d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(), w_distance)
+                print(log)
+                self.log_lst.append(log)
 
             if epoch > self.pretrained_epochs and idx % self.n_update_gan == 0:
                 self.u_optimizer.zero_grad()
-
+                fake_data = self.unet(lesion_data)
                 dis_output = self.d(fake_data)
                 d_loss_ = -torch.mean(dis_output)
 
                 real_data_ = self.unet(real_data)
-                u_loss_ = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                u_loss = self.lmbda * u_loss_ + self.alpha * d_loss_
+                normal_l1_loss = 5 * (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                lesion_l1_loss =  (self.l1_criterion(fake_data, lesion_data)).mean()
+                u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
 
                 self.u_optimizer.step()
 
-                w_distance = d_real_loss.item() + d_fake_loss.item()
                 step = epoch * len(self.dataloader.dataset) + idx
-                info = {'unet_loss': self.lmbda * u_loss_.item(),
+
+                info = {'normal_l1_loss': self.lmbda * normal_l1_loss.item(),
+                        'lesion_l1_loss': self.lmbda * lesion_l1_loss.item(),
                         'adversial_loss': self.alpha * d_loss_.item(),
-                        'loss': self.alpha * d_loss_.item() + self.lmbda * u_loss_.item(),
+                        'loss': u_loss.item(),
                         'w_distance': w_distance,
                         'lr': self.get_lr()}
                 for tag, value in info.items():
@@ -79,13 +88,16 @@ class wgan_gp(base):
 
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
-                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss)+%.3f(l1_loss)' % (
+                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)' % (
                               epoch, self.epochs, d_loss.item(), d_real_loss.item(), d_fake_loss.item(),
                               gradient_penalty.item(), w_distance, u_loss.item(),
-                              self.alpha * d_loss_.item(), self.lmbda * u_loss_.item())
+                              self.alpha * d_loss_.item(), self.lmbda * normal_l1_loss.item(), self.lmbda * lesion_l1_loss.item())
                     print(log)
                     self.log_lst.append(log)
 
+        if epoch == self.pretrained_epochs:
+            with torch.no_grad():
+                self.validate(epoch)
 
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))

@@ -58,10 +58,11 @@ class DownConv(nn.Module):
         self.conv1 = conv3x3(self.in_channels, self.out_channels)
         self.conv2 = conv3x3(self.out_channels, self.out_channels)
 
-        # if self.pooling:
-        #     self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
         if self.pooling:
-            self.pool = conv3x3(self.out_channels, self.out_channels, stride=2)
+            self.pool = nn.Sequential(
+                conv3x3(self.out_channels, out_channels, stride=2),
+            )
+            # self.pool = nn.AvgPool2d(2, 2)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -182,7 +183,7 @@ class UNet(nn.Module):
 if __name__ == "__main__":
     model = UNet(3, depth=5, in_channels=3)
     print(model)
-    x = Variable(torch.randn(1, 3, 64, 64), requires_grad=True)
+    x = Variable(torch.randn(1, 3, 128, 128), requires_grad=True)
     out = model(x)
     # print(out)
-    # print(out.size())
+    print(out.size())

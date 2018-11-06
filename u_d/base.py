@@ -24,12 +24,14 @@ class base(object):
         self.gan_type = args.gan_type
         self.d_depth = args.d_depth
         self.dowmsampling = args.dowmsampling
+        self.gpu_counts = args.gpu_counts
         self.power = args.power
         self.batch_size = args.batch_size
         self.use_gpu = torch.cuda.is_available()
         self.u_depth = args.u_depth
         self.is_pretrained_unet = args.is_pretrained_unet
         self.pretrain_unet_path = args.pretrain_unet_path
+
         self.lr = args.lr
         self.debug = args.debug
         self.prefix = args.prefix
@@ -107,11 +109,10 @@ class base(object):
     def get_unet(self):
         unet = UNet(3, depth=self.u_depth, in_channels=3)
         print(unet)
-        print('load uent with depth %d and downsampling will be performed for %d times!!' % (
-            self.u_depth, self.u_depth - 1))
+        print('load uent with depth %d and downsampling will be performed for %d times!!' % (self.u_depth, self.u_depth - 1))
         if self.is_pretrained_unet:
             unet.load_state_dict(weight_to_cpu(self.pretrain_unet_path))
-            print('load pretrained unet!')
+            print('load pretrained unet')
         return unet
 
     def main(self):
@@ -137,7 +138,6 @@ class base(object):
             self.para2xlsx('./assert/new_dataset_experiment_results.xlsx')
             print('Training complete in {:.0f}m {:.0f}s'.format(
                 total_ptime // 60, total_ptime % 60))
-
 
     def validate(self, epoch):
         """
@@ -294,5 +294,3 @@ class base(object):
         torch.save(self.unet.state_dict(), add_prefix(self.prefix, 'init_g_para.pkl'))
         torch.save(self.d.state_dict(), add_prefix(self.prefix, 'init_d_para.pkl'))
         print('save initial model parameters successfully')
-
-
