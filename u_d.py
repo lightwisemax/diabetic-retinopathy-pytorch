@@ -24,7 +24,7 @@ np.random.seed(SEED)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Training Custom Defined Model')
-    parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp',
+    parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp-c',
                         choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization', 'training_iterative'],
                         help='training strategies')
     parser.add_argument('-b', '--batch_size', type=int, required=True, help='batch size')
@@ -34,6 +34,7 @@ def parse_args():
     parser.add_argument('-p', '--prefix', type=str, required=True, help='parent folder to save result')
     parser.add_argument('-a', '--alpha', type=float, default=1, help='weight of d in u & d')
     parser.add_argument('-l', '--lmbda', type=float, default=0.2, help='weight of u in u & d')
+    parser.add_argument('-m', '--mu', type=float, default=0.5, help='weight of fix classifier')
     parser.add_argument('--gamma', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
     parser.add_argument('-n', '--n_update_gan', type=int, default=1, help='update gan(unet) frequence')
@@ -60,20 +61,13 @@ def parse_args():
 def main():
     args = parse_args()
     if args.training_strategies == 'wgan-gp':
-        trainer = wgan_gp(args)
-        script_path = './u_d/wgan_gp.py'
-        print('update u & d(wgan-gp)')
-    elif args.training_strategies == 'wgan-gp-':
-        script_path = './explore/wgan_gp_.py'
-        trainer = wgan_gp_(args)
-        print('just update d with wgan-gp and analyse gradients')
-    elif args.training_strategies == 'dcgan-':
-        script_path = './explore/dcgan_.py'
-        trainer = dcgan_(args)
-        print('just update d with dcgan and analyse gradients')
-    # elif args.training_strategies == 'training_iterative':
-    #     script_path = './u_d/training_iterative.py'
-    #     trainer = training_iterative(args)
+        trainer = gan(args)
+        script_path = './u_d/gan.py'
+        print('update u & d')
+    elif args.training_strategies == 'wgan-gp-c':
+        trainer = gan_c(args)
+        script_path = './u_d/gan_c.py'
+        print('update u & d & c ')
     else:
         raise ValueError('')
     trainer.save_running_script(script_path)
