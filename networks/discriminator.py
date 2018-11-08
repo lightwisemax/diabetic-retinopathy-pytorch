@@ -226,6 +226,3 @@ if __name__ == '__main__':
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
     print(d(tensor))
-
-    import torchvision.models as models
-    models.vgg11()
