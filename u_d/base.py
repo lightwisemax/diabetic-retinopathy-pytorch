@@ -135,7 +135,6 @@ class base(object):
         total_ptime = time.time() - start_time
         if not self.debug:
             # note:relative path is based on the script u_d.py
-            self.para2xlsx('./assert/new_dataset_experiment_results.xlsx')
             print('Training complete in {:.0f}m {:.0f}s'.format(
                 total_ptime // 60, total_ptime % 60))
 
@@ -227,12 +226,6 @@ class base(object):
                 weights_bottom.cpu().data.numpy().flatten())
             self.plot_gradient(saved_path, 'weights_top_%d.png' % idx, weights_top)
             self.plot_gradient(saved_path, 'weights_bottom_%d.png' % idx, weights_bottom)
-
-    def para2xlsx(self, path):
-        """
-        save running essential parameters and critical information to .xlsx file
-        """
-        pass
 
     def plot_gradient(self, saved_path, phase, weights):
         """
