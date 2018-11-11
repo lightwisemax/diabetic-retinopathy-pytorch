@@ -4,6 +4,7 @@ from torch import nn
 from torch.optim import lr_scheduler
 
 from u_d.base import base
+from utils.piecewise_l1_loss import PiecewiseL1Loss
 
 
 class gan(base):
@@ -13,6 +14,7 @@ class gan(base):
         self.alpha = args.alpha
         self.pretrained_epochs = args.pretrained_epochs
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
+        self.piecewise_l1_criterion = PiecewiseL1Loss().cuda()
         print('discriminator will be updated for %d firstly.' % self.pretrained_epochs)
 
     def train(self, epoch):
@@ -61,19 +63,18 @@ class gan(base):
 
             if epoch > self.pretrained_epochs and idx % self.n_update_gan == 0:
                 self.u_optimizer.zero_grad()
-                fake_data = self.unet(lesion_data)
                 dis_output = self.d(fake_data)
                 d_loss_ = -torch.mean(dis_output)
 
                 real_data_ = self.unet(real_data)
-                normal_l1_loss = 5 * (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = (self.l1_criterion(fake_data, lesion_data)).mean()
+                normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                lesion_l1_loss = self.piecewise_l1_criterion(fake_data, lesion_data)
                 u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
 
                 self.u_optimizer.step()
 
-                step = epoch * len(self.dataloader.dataset) + idx
+                step = epoch * len(self.dataloader.dataset)//self.batch_size + idx
 
                 info = {'normal_l1_loss': self.lmbda * normal_l1_loss.item(),
                         'lesion_l1_loss': self.lmbda * lesion_l1_loss.item(),
@@ -101,5 +102,5 @@ class gan(base):
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=0.996)
-        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=0.996)
+        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=1.0)
+        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=1.0)

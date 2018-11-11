@@ -71,19 +71,20 @@ class gan_c(base):
                 dis_output = self.d(fake_data)
                 d_loss_ = -torch.mean(dis_output)
                 real_data_ = self.unet(real_data)
-                normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
+                normal_l1_loss = (self.l1_criterion(real_data_, real_data)).mean()
                 lesion_l1_loss =  (self.l1_criterion(fake_data, lesion_data)).mean()
                 c_loss = self.bce(F.sigmoid(self.fix_classifier(fake_data).squeeze(1)), normal_labels)
 
-                u_loss = self.lmbda * normal_l1_loss + 0.1 * self.lmbda * lesion_l1_loss + self.alpha * d_loss_ + self.mu * c_loss
+                # u_loss = self.lmbda * normal_l1_loss + self.lmbda * lesion_l1_loss + self.alpha * d_loss_ + self.mu * c_loss
+                u_loss = self.lmbda * normal_l1_loss + self.alpha * d_loss_ + self.mu * c_loss
                 u_loss.backward()
 
                 self.u_optimizer.step()
 
-                step = epoch * len(self.dataloader.dataset) + idx
+                step = epoch * (len(self.dataloader.dataset)//self.batch_size) + idx
 
                 info = {'normal_l1_loss': self.lmbda * normal_l1_loss.item(),
-                        'lesion_l1_loss': 0.1 * self.lmbda * lesion_l1_loss.item(),
+                        'lesion_l1_loss': self.lmbda * lesion_l1_loss.item(),
                         'adversial_loss': self.alpha * d_loss_.item(),
                         'loss': u_loss.item(),
                         'w_distance': w_distance,
@@ -96,7 +97,7 @@ class gan_c(base):
                           'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)+%.3f(c_loss)' % (
                               epoch, self.epochs, d_loss.item(), d_real_loss.item(), d_fake_loss.item(),
                               gradient_penalty.item(), w_distance, u_loss.item(),
-                              self.alpha * d_loss_.item(), self.lmbda * normal_l1_loss.item(), 0.1 * self.lmbda * lesion_l1_loss.item(), self.mu * c_loss.item())
+                              self.alpha * d_loss_.item(), self.lmbda * normal_l1_loss.item(), self.lmbda * lesion_l1_loss.item(), self.mu * c_loss.item())
                     print(log)
                     self.log_lst.append(log)
 
@@ -107,8 +108,8 @@ class gan_c(base):
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.unet.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=0.996)
-        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=0.996)
+        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=1.0)
+        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=1.0)
 
     def get_classifier(self, pretrained_path='./vgg02/'):
         checkpoint = torch.load(add_prefix(pretrained_path, 'model_best.pth.tar'))
@@ -122,4 +123,6 @@ class gan_c(base):
             model = DataParallel(model).cuda()
         else:
             raise RuntimeWarning('there is no gpu available.')
+        model.eval()
+        print('set model to fixed')
         return model

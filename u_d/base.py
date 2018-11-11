@@ -119,6 +119,7 @@ class base(object):
         assert hasattr(self, 'u_lr_scheduler') and hasattr(self, 'd_lr_scheduler')
         print('training start!')
         start_time = time.time()
+        print('d will be updated %d times while g will be updated for 1 time.' % self.n_update_gan)
         if self.interval % self.n_update_gan != 0:
             warnings.warn("It's hyperparameter n_update_gan is divisible by hyperparameter interval")
         for epoch in range(1, self.epochs + 1):
