@@ -188,7 +188,7 @@ class LocalDiscriminator(nn.Module):
         self.convs = nn.Sequential(*convs)
         self.final_conv = conv1x1(self.outs, 1)
         print('the last feature size is (%d, %d)' % (self.last_size, self.last_size))
-
+        initialize_weights(self)
 
     def forward(self, x):
         for module in self.convs:
