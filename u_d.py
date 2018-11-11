@@ -39,13 +39,13 @@ def parse_args():
     parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
     parser.add_argument('-n', '--n_update_gan', type=int, default=1, help='update gan(unet) frequence')
     parser.add_argument('-u', '--is_pretrained_unet', action='store_true', help='pretrained unet or not')
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping49/identical_mapping.pkl', help='pretrained unet')
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping50/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
     parser.add_argument('-d', '--data', type=str, default='./data/gan_h_flip', choices=['./data/gan', './data/gan_h_flip'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
-    parser.add_argument('--gan_type', type=str, default='conv_bn_leaky_relu',
-                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale'],
+    parser.add_argument('--gan_type', type=str, default='local_discriminator',
+                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale', 'local_discriminator'],
                         help='discriminator type')
     parser.add_argument('--d_depth', type=int, default=7, help='discriminator depth')
     parser.add_argument('--u_depth', type=int, default=5, help='unet dpeth')
