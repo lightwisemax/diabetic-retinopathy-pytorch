@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from networks.ops import BatchNorm, initialize_weights, BasicBlock
+from networks.unet import conv1x1
 from utils.read_data import EasyDR
 
 
@@ -169,6 +170,34 @@ class ConvBatchNormLeaky(nn.Module):
         return x
 
 
+class LocalDiscriminator(nn.Module):
+    def __init__(self, downsampling=3):
+        super(LocalDiscriminator, self).__init__()
+        self.downsampling = downsampling
+        self.input_dim = 3
+        self.start_filts = 64
+        self.depth = self.downsampling
+        self.last_size = 128 // (2**self.downsampling)
+        convs = []
+
+        for i in range(self.downsampling):
+            ins = self.input_dim if i == 0 else self.outs
+            self.outs = self.start_filts * (2 ** i)
+            convs.append(BatchNorm(ins, self.outs))
+
+        self.convs = nn.Sequential(*convs)
+        self.final_conv = conv1x1(self.outs, 1)
+        print('the last feature size is (%d, %d)' % (self.last_size, self.last_size))
+
+
+    def forward(self, x):
+        for module in self.convs:
+            x = module(x)
+        x = self.final_conv(x)
+        x = x.view(-1,1)
+        return x
+
+
 def get_discriminator(dis_type, depth, dowmsampling):
     if dis_type == 'conv_bn_leaky_relu':
         print('use conv_bn_leaky_relu as discriminator and downsampling will be achieved for %d times.' % dowmsampling)
@@ -179,6 +208,9 @@ def get_discriminator(dis_type, depth, dowmsampling):
     elif dis_type == 'resnet':
         print('use ResNet as discriminator')
         d = ResNet(BasicBlock, [2, 2, 2, 2])
+    elif dis_type == 'local_discriminator':
+        d = LocalDiscriminator()
+        print('use LocalDiscriminator as discriminator')
     else:
         raise ValueError("parameter discriminator type must be in ['conv_bn_leaky_relu', 'conv_leaky_relu']")
     print(d)
@@ -220,9 +252,10 @@ if __name__ == '__main__':
 
     train_loader = test_data_loader()
     # d = ConvBatchNormLeaky(7, 4)
-    d = MultiScale(7, 4)
+    # d = MultiScale(7, 4)
     # d = ResNet(BasicBlock, [2, 2, 2, 2])
+    d = LocalDiscriminator(downsampling=3)
 
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
-    print(d(tensor))
+    print(d(tensor).mean())

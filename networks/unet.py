@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.autograd import Variable
 
 from networks.ops import initialize_weights
@@ -56,17 +55,20 @@ class DownConv(nn.Module):
         self.pooling = pooling
 
         self.conv1 = conv3x3(self.in_channels, self.out_channels)
+        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.2)
+        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.2)
         self.conv2 = conv3x3(self.out_channels, self.out_channels)
 
         if self.pooling:
             self.pool = nn.Sequential(
                 conv3x3(self.out_channels, out_channels, stride=2),
+                nn.LeakyReLU(0.2)
             )
             # self.pool = nn.AvgPool2d(2, 2)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
+        x = self.leaky_relu1(self.conv1(x))
+        x = self.leaky_relu2(self.conv2(x))
         before_pool = x
 
         if self.pooling:
@@ -91,13 +93,14 @@ class UpConv(nn.Module):
 
         self.upconv = upconv2x2(self.in_channels, self.out_channels,
                                 mode=self.up_mode)
+        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.2)
+        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.2)
 
         if self.merge_mode == 'concat':
             self.conv1 = conv3x3(
                 2 * self.out_channels, self.out_channels)
         else:
-            # num of input channels to conv2 is same
-            self.conv1 = conv3x3(self.out_channels, self.out_channels)
+            raise ValueError('')
         self.conv2 = conv3x3(self.out_channels, self.out_channels)
 
     def forward(self, from_down, from_up):
@@ -111,8 +114,8 @@ class UpConv(nn.Module):
             x = torch.cat((from_up, from_down), 1)
         else:
             x = from_up + from_down
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
+        x = self.leaky_relu1(self.conv1(x))
+        x = self.leaky_relu2(self.conv2(x))
         return x
 
 
