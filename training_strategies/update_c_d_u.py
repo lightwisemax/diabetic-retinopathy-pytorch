@@ -4,6 +4,7 @@ from torch.autograd import grad
 from torch.optim import lr_scheduler
 
 from training_strategies.base import base
+from utils.piecewise_l1_loss import PiecewiseL1Loss
 from utils.tv_loss import TVLoss
 
 
@@ -19,6 +20,7 @@ class update_c_d_u(base):
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         self.tv_loss_criterion = TVLoss().cuda()
+        self.piecewise_l1_criterion = PiecewiseL1Loss(nums=300.0 * 3).cuda()
 
     def shuffle(self, lesion_data, normal_data, lesion_labels, normal_labels, lesion_gradients, normal_gradients):
         inputs, labels, gradients = torch.cat((lesion_data, normal_data), 0), torch.cat(
@@ -91,7 +93,7 @@ class update_c_d_u(base):
 
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                lesion_l1_loss = self.piecewise_l1_criterion(fake_data, lesion_data)
                 # lesion_l1_loss = self.l1_criterion(fake_data, lesion_data).mean()
                 # add total variable loss as a regularization term
                 tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
@@ -129,7 +131,7 @@ class update_c_d_u(base):
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
-        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(self.beta1, 0.999))
+        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(0.9, 0.999))
         self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=self.epsi)
         self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=self.epsi)
         self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=self.epsi)
