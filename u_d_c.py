@@ -14,18 +14,18 @@ def parse_args():
     parser.add_argument('--training_strategies', '-ts', default='update_c_d_u', choices=['update_c_d_u'], help='training strategies')
     parser.add_argument('--prefix', '-p', type=str, required=True, help='parent folder to save output data')
     parser.add_argument('--is_pretrained_unet', '-u', action='store_true', help='pretrained unet or not')
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping45/identical_mapping.pkl', help='pretrained unet')
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping50/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--power', '-k', type=int, default=2, help='power of weight')
-    parser.add_argument('--data', type=str, default='./data/gan', choices=['./data/gan'], help='dataset type')
+    parser.add_argument('--data', type=str, default='./data/gan_h_flip', choices=['./data/gan', './data/gan_h_flip'], help='dataset type')
     parser.add_argument('--batch_size', '-b', default=64, type=int, required=True, help='batch size')
-    parser.add_argument('--gan_type', type=str, default='conv_bn_leaky_relu',
-                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale'],
+    parser.add_argument('--gan_type', type=str, default='local_discriminator',
+                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale', 'local_discriminator'],
                         help='discriminator type')
     parser.add_argument('--u_depth', type=int, default=5, help='unet dpeth')
     parser.add_argument('--d_depth', type=int, default=7, help='discriminator depth')
     parser.add_argument('--dowmsampling', type=int, default=4, help='dowmsampling times in discriminator')
     parser.add_argument('--lr', default=2e-4, type=float, help='learning rate')
-    parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
+    parser.add_argument('--beta1', type=float, default=0.5, help='beta1 in Adam')
     parser.add_argument('--interval', '-i', default=15, type=int, required=True, help='log print interval')
     parser.add_argument('--epochs', '-e', default=390, type=int, required=True, help='training epochs')
     parser.add_argument('--lmbda', '-l', type=float, help='weight of u between u and c')
@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--alpha', '-a', type=float, help='weight of d in u & d')
     parser.add_argument('--theta', '-t', type=float, help='weight of total variation loss')
     parser.add_argument('--eta', type=float, default=10.0, help='gradient penalty')
-    parser.add_argument('--epsi', type=float, default=0.996, help='learning rate exponential decay step')
+    parser.add_argument('--epsi', type=float, default=1.0, help='learning rate exponential decay step')
     parser.add_argument('--pretrained_steps', type=int, default=0, help='pretrained steps')
     parser.add_argument('--debug', action='store_true', default=False, help='mode:training or debug')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
