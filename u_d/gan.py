@@ -69,6 +69,7 @@ class gan(base):
                 real_data_ = self.unet(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
                 lesion_l1_loss = self.piecewise_l1_criterion(fake_data, lesion_data)
+                # lesion_l1_loss = self.l1_criterion(fake_data, lesion_data).mean()
                 u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
 
