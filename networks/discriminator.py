@@ -5,16 +5,12 @@ reference: https://github.com/jaxony/unet-pytorch/blob/master/model.py
 """
 import math
 
-import os
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms
 
 from networks.ops import BatchNorm, initialize_weights, BasicBlock
 from networks.unet import conv1x1
-from utils.read_data import EasyDR
 
 
 class MultiScale(nn.Module):
@@ -26,7 +22,6 @@ class MultiScale(nn.Module):
         self.depth = depth
         self.output_dim = 1
         self.downsampling = downsampling
-
 
         self.final_outs = self.start_filts
         down_conv = []
@@ -72,23 +67,55 @@ class MultiScale(nn.Module):
         return x
 
 
-class ResNet(nn.Module):
+class FPN(nn.Module):
+    """
+    reference: https://github.com/kuangliu/pytorch-fpn/blob/master/fpn.py
+    """
 
-    def __init__(self, block, layers):
-        self.inplanes = 3
-        self.depth = 4
-        super(ResNet, self).__init__()
-        self.last_size = 8
+    def __init__(self, block, layers, output_dim=1):
+        self.inplanes = 64
+        self.last_size = 32
+        self.ouput_dim = output_dim
 
+        super(FPN, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0], stride=2)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool2 = nn.AvgPool2d(self.last_size, stride=1)
 
-        self.fc = nn.Linear(512, 1)
+        # Top layer
+        self.toplayer = nn.Conv2d(512, 1, kernel_size=1, stride=1, padding=0)  # Reduce channels
 
-        initialize_weights(self)
+        # Smooth layers
+        self.smooth3 = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1)
+
+        # Lateral layers
+        self.latlayer1 = nn.Conv2d(256, 1, kernel_size=1, stride=1, padding=0)
+        self.latlayer2 = nn.Conv2d(128, 1, kernel_size=1, stride=1, padding=0)
+        self.latlayer3 = nn.Conv2d(64, 1, kernel_size=1, stride=1, padding=0)
+
+        self.classifier = nn.Sequential(
+            nn.Linear(self.last_size * self.last_size, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, self.ouput_dim)
+        )
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                m.weight.data.normal_(0, 0.02)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.02)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+        print('the last feature size is (%d, %d)' % (self.last_size, self.last_size))
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -107,18 +134,45 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def _upsample_add(self, x, y):
+        '''Upsample and add two feature maps.
+        Args:
+          x: (Variable) top feature map to be upsampled.
+          y: (Variable) lateral feature map.
+        Returns:
+          (Variable) added feature map.
+        Note in PyTorch, when input size is odd, the upsampled feature map
+        with `F.upsample(..., scale_factor=2, mode='nearest')`
+        maybe not equal to the lateral feature map size.
+        e.g.
+        original input size: [N,_,15,15] ->
+        conv2d feature map size: [N,_,8,8] ->
+        upsampled feature map size: [N,_,16,16]
+        So we choose bilinear upsample which supports arbitrary output sizes.
+        '''
+        _, _, H, W = y.size()
+        return F.upsample(x, size=(H, W), mode='bilinear', align_corners=False) + y
+
     def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        x = self.avgpool2(x)
+        c1 = self.relu(self.bn1(self.conv1(x)))
 
-        x = x.view(x.size(0), -1)
+        c2 = self.layer1(c1)
+        c3 = self.layer2(c2)
+        c4 = self.layer3(c3)
+        c5 = self.layer4(c4)
 
-        x = self.fc(x)
+        p5 = self.toplayer(c5)
+        p4 = self._upsample_add(p5, self.latlayer1(c4))
+        p3 = self._upsample_add(p4, self.latlayer2(c3))
+        p2 = self._upsample_add(p3, self.latlayer3(c2))
+        # Smooth
+        p2 = self.smooth3(p2)
+        # return p2, p3, p4, p5
 
-        return x
+        output = p2.view(-1, self.last_size * self.last_size)
+
+        output = self.classifier(output)
+        return output
 
 
 class ConvBatchNormLeaky(nn.Module):
@@ -177,7 +231,7 @@ class LocalDiscriminator(nn.Module):
         self.input_dim = 3
         self.start_filts = 64
         self.depth = self.downsampling
-        self.last_size = 128 // (2**self.downsampling)
+        self.last_size = 128 // (2 ** self.downsampling)
         convs = []
 
         for i in range(self.downsampling):
@@ -194,8 +248,12 @@ class LocalDiscriminator(nn.Module):
         for module in self.convs:
             x = module(x)
         x = self.final_conv(x)
-        x = x.view(-1,1)
+        x = x.view(-1, 1)
         return x
+
+
+def FPN18():
+    return FPN(BasicBlock, [2, 2, 2, 2])
 
 
 def get_discriminator(dis_type, depth, dowmsampling):
@@ -207,42 +265,16 @@ def get_discriminator(dis_type, depth, dowmsampling):
         d = MultiScale(depth, dowmsampling)
     elif dis_type == 'resnet':
         print('use ResNet as discriminator')
-        d = ResNet(BasicBlock, [2, 2, 2, 2])
+        d = FPN18()
     elif dis_type == 'local_discriminator':
         d = LocalDiscriminator()
         print('use LocalDiscriminator as discriminator')
     else:
         raise ValueError("parameter discriminator type must be in ['conv_bn_leaky_relu', 'conv_leaky_relu']")
     print(d)
-    print('use discriminator with depth of %d and last custom_conv feature size is (%d,%d)' % (d.depth, d.last_size, d.last_size))
+    print('use discriminator with depth of %d and last custom_conv feature size is (%d,%d)' % (
+    d.depth, d.last_size, d.last_size))
     return d
-
-
-def test_data_loader():
-    global train_loader
-    traindir = os.path.join('../data/target_128', 'train')
-    mean = [0.5, 0.5, 0.5]
-    std = [0.5, 0.5, 0.5]
-    normalize = transforms.Normalize(mean, std)
-    # pre_transforms: gradient will change in the same time as data augumentation goes.
-    # post_transforms: ToTensor and Normalization
-    pre_transforms = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.ColorJitter(0.05, 0.05, 0.05, 0.05)
-    ])
-    post_transforms = transforms.Compose([
-        transforms.ToTensor(),
-        normalize
-    ])
-    train_dataset = EasyDR(traindir, pre_transforms, post_transforms, 2)
-    train_loader = DataLoader(train_dataset,
-                              batch_size=3,
-                              shuffle=True,
-                              num_workers=4,
-                              drop_last=True,
-                              pin_memory=False)
-    return train_loader
 
 
 if __name__ == '__main__':
@@ -250,12 +282,11 @@ if __name__ == '__main__':
     torch.manual_seed(SEED)
     torch.cuda.manual_seed(SEED)
 
-    train_loader = test_data_loader()
     # d = ConvBatchNormLeaky(7, 4)
     # d = MultiScale(7, 4)
     # d = ResNet(BasicBlock, [2, 2, 2, 2])
-    d = LocalDiscriminator(downsampling=3)
-
+    # d = LocalDiscriminator(downsampling=3)
+    d = FPN18()
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
-    print(d(tensor).mean())
+    print(d(tensor))
