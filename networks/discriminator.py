@@ -75,6 +75,8 @@ class FPN(nn.Module):
     def __init__(self, block, layers, output_dim=1):
         self.inplanes = 64
         self.last_size = 32
+        # 4 blocks
+        self.depth = 4
         self.ouput_dim = output_dim
 
         super(FPN, self).__init__()
