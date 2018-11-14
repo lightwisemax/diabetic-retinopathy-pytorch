@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
-from networks.ops import BatchNorm, initialize_weights, BasicBlock
+from networks.ops import BatchNorm, initialize_weights, BasicBlock, SEBasicBlock
 from networks.unet import conv1x1
 
 
@@ -70,8 +70,8 @@ class MultiScale(nn.Module):
 class FPN(nn.Module):
     """
     reference: https://github.com/kuangliu/pytorch-fpn/blob/master/fpn.py
+    feature pyramid networks
     """
-
     def __init__(self, block, layers, output_dim=1):
         self.inplanes = 64
         self.last_size = 32
@@ -83,7 +83,6 @@ class FPN(nn.Module):
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0], stride=2)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
@@ -227,6 +226,9 @@ class ConvBatchNormLeaky(nn.Module):
 
 
 class LocalDiscriminator(nn.Module):
+    """
+    score for each patch(32x32)
+    """
     def __init__(self, downsampling=3):
         super(LocalDiscriminator, self).__init__()
         self.downsampling = downsampling
@@ -254,8 +256,68 @@ class LocalDiscriminator(nn.Module):
         return x
 
 
+class SeNet(nn.Module):
+    """
+    SeNet is similar to CAM.By Se model,a score for feature map is obtained.
+    """
+    def __init__(self, block, layers, output_dim=1):
+        super(SeNet, self).__init__()
+        self.inplanes = 64
+        self.last_size = 4
+        # 4 blocks
+        self.depth = 4
+        self.ouput_dim = output_dim
+
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.layer1 = self._make_layer(block, 64, layers[0], stride=2)
+        self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AvgPool2d(4, stride=1)
+        self.fc = nn.Linear(512 * block.expansion, self.ouput_dim)
+
+        initialize_weights(self)
+        print('the last feature size is (%d, %d)' % (self.last_size, self.last_size))
+
+    def _make_layer(self, block, planes, blocks, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(block(self.inplanes, planes, stride, downsample))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes))
+
+        return nn.Sequential(*layers)
+
+
+    def forward(self, x):
+        x = self.relu(self.bn1(self.conv1(x)))
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
+
 def FPN18():
     return FPN(BasicBlock, [2, 2, 2, 2])
+
+
+def SeNet18():
+    return SeNet(SEBasicBlock, [2, 2, 2, 2])
 
 
 def get_discriminator(dis_type, depth, dowmsampling):
@@ -271,6 +333,9 @@ def get_discriminator(dis_type, depth, dowmsampling):
     elif dis_type == 'local_discriminator':
         d = LocalDiscriminator()
         print('use LocalDiscriminator as discriminator')
+    elif dis_type == 'senet':
+        d = SeNet18()
+        print('use SeNet18 18 as discriminator.')
     else:
         raise ValueError("parameter discriminator type must be in ['conv_bn_leaky_relu', 'conv_leaky_relu']")
     print(d)
@@ -288,7 +353,10 @@ if __name__ == '__main__':
     # d = MultiScale(7, 4)
     # d = ResNet(BasicBlock, [2, 2, 2, 2])
     # d = LocalDiscriminator(downsampling=3)
-    d = FPN18()
+    d = SeNet18()
+    # d = FPN18()
+    import torchvision.models as models
+    # d = models.resnet18(pretrained=False)
     print(d)
     tensor = torch.rand((2, 3, 128, 128))
     print(d(tensor))
