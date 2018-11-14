@@ -14,7 +14,12 @@ class gan(base):
         self.alpha = args.alpha
         self.pretrained_epochs = args.pretrained_epochs
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
-        self.piecewise_l1_criterion = PiecewiseL1Loss().cuda()
+        if args.is_l1_loss:
+            self.lesion_criterion = nn.L1Loss().cuda()
+            print('use L1Loss to restrain lesion data.')
+        else:
+            self.lesion_criterion = PiecewiseL1Loss(mu=50.0).cuda()
+            print('use PiecewiseL1Loss to restrain lesion data.')
         print('discriminator will be updated for %d firstly.' % self.pretrained_epochs)
 
     def train(self, epoch):
@@ -68,8 +73,7 @@ class gan(base):
 
                 real_data_ = self.unet(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = self.piecewise_l1_criterion(fake_data, lesion_data)
-                # lesion_l1_loss = self.l1_criterion(fake_data, lesion_data).mean()
+                lesion_l1_loss = self.lesion_criterion(fake_data, lesion_data)
                 u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
                 u_loss.backward()
 

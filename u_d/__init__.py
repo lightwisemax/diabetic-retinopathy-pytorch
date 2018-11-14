@@ -8,5 +8,4 @@ directory tree:
 note we mustn't put models in .train() or eval() models during training gan.
 reference: https://discuss.pytorch.org/t/why-dont-we-put-models-in-train-or-eval-modes-in-dcgan-example/7422
 """
-from u_d.gan_c import gan_c
 from u_d.gan import gan
