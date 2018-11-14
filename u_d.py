@@ -24,7 +24,7 @@ np.random.seed(SEED)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Training Custom Defined Model')
-    parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp-c',
+    parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp',
                         choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization', 'training_iterative'],
                         help='training strategies')
     parser.add_argument('-b', '--batch_size', type=int, required=True, help='batch size')
@@ -47,14 +47,14 @@ def parse_args():
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='local_discriminator',
-                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale', 'local_discriminator'],
+                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale', 'local_discriminator', 'senet'],
                         help='discriminator type')
     parser.add_argument('--d_depth', type=int, default=7, help='discriminator depth')
     parser.add_argument('--u_depth', type=int, default=5, help='unet dpeth')
     parser.add_argument('--dowmsampling', type=int ,default=4, help='dowmsampling times in discriminator')
     parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
-    parser.add_argument('--sequential_epochs', default=0, type=int, help='sequential training epoch nums in script tranining_iterative.py')
+    parser.add_argument('--is_l1_loss', default=True, action='store_false', help='use l1_los or not')
 
     args = parser.parse_args()
 
@@ -66,10 +66,6 @@ def main():
         trainer = gan(args)
         script_path = './u_d/gan.py'
         print('update u & d')
-    elif args.training_strategies == 'wgan-gp-c':
-        trainer = gan_c(args)
-        script_path = './u_d/gan_c.py'
-        print('update u & d & c ')
     else:
         raise ValueError('')
     trainer.save_running_script(script_path)
