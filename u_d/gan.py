@@ -12,13 +12,14 @@ class gan(base):
         base.__init__(self, args)
         self.lmbda = args.lmbda
         self.alpha = args.alpha
+        self.delta = args.delta
         self.pretrained_epochs = args.pretrained_epochs
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         if args.is_l1_loss:
             self.lesion_criterion = nn.L1Loss().cuda()
             print('use L1Loss to restrain lesion data.')
         else:
-            self.lesion_criterion = PiecewiseL1Loss(mu=50.0).cuda()
+            self.lesion_criterion = PiecewiseL1Loss(delta=self.delta).cuda()
             print('use PiecewiseL1Loss to restrain lesion data.')
         print('discriminator will be updated for %d firstly.' % self.pretrained_epochs)
 
