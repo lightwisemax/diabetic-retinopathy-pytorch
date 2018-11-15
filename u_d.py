@@ -34,7 +34,6 @@ def parse_args():
     parser.add_argument('-p', '--prefix', type=str, required=True, help='parent folder to save result')
     parser.add_argument('-a', '--alpha', type=float, default=1, help='weight of d in u & d')
     parser.add_argument('-l', '--lmbda', type=float, default=0.2, help='weight of u in u & d')
-    parser.add_argument('-m', '--mu', type=float, default=0.5, help='weight of fix classifier')
     parser.add_argument('--gamma', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--delta', type=float, default=20.0, help='changed intensity for a pixel')
     parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
@@ -42,9 +41,10 @@ def parse_args():
     parser.add_argument('-u', '--is_pretrained_unet', action='store_true', help='pretrained unet or not')
     # ./identical_mapping50/identical_mapping.pkl flip
     # ./identical_mapping51/identical_mapping.pkl gan1(DR with distinct features)
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping51/identical_mapping.pkl', help='pretrained unet')
+    # ./identical_mapping52/identical_mapping.pkl gan1(DR with 500 images)
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping52/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
-    parser.add_argument('-d', '--data', type=str, default='./data/gan1', choices=['./data/gan', './data/gan_h_flip', './data/gan1'],
+    parser.add_argument('-d', '--data', type=str, default='./data/gan3', choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='local_discriminator',

@@ -36,7 +36,7 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool,
                     help='use gpu or not')
 parser.add_argument('-i', '--interval_freq', default=12, type=int,
                     help='printing log frequence')
-parser.add_argument('-d', '--data', default='./data/gan2',
+parser.add_argument('-d', '--data', default='./data/gan4',
                     help='path to dataset')
 parser.add_argument('-p', '--prefix', required=True, type=str,
                     help='folder prefix')
@@ -107,6 +107,8 @@ def load_dataset():
         print('load DR with size 128 successfully!!')
     elif args.data == './data/gan2':
         print('load DR with distinct features!!')
+    elif args.data == './data/gan4':
+        print('load DR with 500 images.')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in ['./data/target_128']")
     normalize = transforms.Normalize(mean, std)

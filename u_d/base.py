@@ -90,6 +90,8 @@ class base(object):
             print('load horizontal flipped DR with size 128 successfully!!')
         elif self.data == './data/gan1':
             print('load DR with distinct features!!')
+        elif self.data == './data/gan3':
+            print('load DR with 500 images.')
         else:
             raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
