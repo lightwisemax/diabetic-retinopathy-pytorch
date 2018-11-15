@@ -36,6 +36,7 @@ def parse_args():
     parser.add_argument('-l', '--lmbda', type=float, default=0.2, help='weight of u in u & d')
     parser.add_argument('--gamma', type=float, default=10.0, help='gradient penalty')
     parser.add_argument('--delta', type=float, default=20.0, help='changed intensity for a pixel')
+    parser.add_argument('--nums', type=float, default=200.0*3, help='')
     parser.add_argument('--beta1', type=float, default=0.0, help='beta1 in Adam')
     parser.add_argument('-n', '--n_update_gan', type=int, default=1, help='update gan(unet) frequence')
     parser.add_argument('-u', '--is_pretrained_unet', action='store_true', help='pretrained unet or not')
