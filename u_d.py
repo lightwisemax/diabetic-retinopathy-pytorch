@@ -43,9 +43,10 @@ def parse_args():
     # ./identical_mapping50/identical_mapping.pkl flip
     # ./identical_mapping51/identical_mapping.pkl gan1(DR with distinct features)
     # ./identical_mapping52/identical_mapping.pkl gan1(DR with 500 images)
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping52/identical_mapping.pkl', help='pretrained unet')
+    # ./identical_mapping53/identical_mapping.pkl gan1(DR with 500 images after preprocessing)
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping53/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
-    parser.add_argument('-d', '--data', type=str, default='./data/gan3', choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3'],
+    parser.add_argument('-d', '--data', type=str, default='./data/gan5', choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='local_discriminator',
