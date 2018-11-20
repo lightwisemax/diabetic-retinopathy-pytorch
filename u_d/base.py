@@ -94,6 +94,10 @@ class base(object):
             print('load DR with 500 images.')
         elif self.data == './data/gan5':
             print('load DR with 500 images after preprocessing.')
+        elif self.data == './data/gan7':
+            print('load DR with images attaching ImageNet.')
+        elif self.data == './data/gan9':
+            print('load resized skin dataset.')
         else:
             raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
