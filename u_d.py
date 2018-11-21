@@ -46,10 +46,11 @@ def parse_args():
     # ./identical_mapping53/identical_mapping.pkl gan5(DR with 500 images after preprocessing)
     # ./identical_mapping54/identical_mapping.pkl gan7(load DR with images attaching ImageNet).
     # ./identical_mapping55/identicla_mapping.pkl gan9(load resized skin dataset).
-    # ./identical_mapping56/identicla_mapping.pkl gan11(load resizd skin dataset with one large lesion area).
+    # ./identical_mapping56/identicla_mapping.pkl gan11(load resizd skin dataset with one large lesion area).lesion area size is euqal to (32,32)
+    # ./identical_mapping57/identicla_mapping.pkl gan13(load DR with images attaching ImageNet(lesion area size is equal to (8,8)).
     parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping54/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
-    parser.add_argument('-d', '--data', type=str, default='./data/gan7', choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3', './data/gan5', './data/gan7', './data/gan9', './data/gan11'],
+    parser.add_argument('-d', '--data', type=str, default='./data/gan7', choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3', './data/gan5', './data/gan7', './data/gan9', './data/gan11', './data/gan13'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='local_discriminator',
