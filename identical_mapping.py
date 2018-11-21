@@ -119,6 +119,8 @@ def load_dataset():
         print('load resizd skin dataset with one large lesion area.')
     elif args.data == './data/gan14':
         print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
+    elif args.data == './data/gan16':
+        print('attach 55 distinctly real lesion images based on gan13.')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in ['./data/target_128']")
     normalize = transforms.Normalize(mean, std)
