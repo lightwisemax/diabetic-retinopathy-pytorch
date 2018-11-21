@@ -95,7 +95,7 @@ class base(object):
         elif self.data == './data/gan5':
             print('load DR with 500 images after preprocessing.')
         elif self.data == './data/gan7':
-            print('load DR with images attaching ImageNet.')
+            print('load DR with images attaching ImageNet(lesion area size is equal to (32,32)).')
         elif self.data == './data/gan9':
             print('load resized skin dataset with random and tiny lesion area.')
         elif self.data == './data/gan11':
