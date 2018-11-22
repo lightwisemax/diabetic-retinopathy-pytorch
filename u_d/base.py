@@ -304,3 +304,6 @@ class base(object):
         torch.save(self.unet.state_dict(), add_prefix(self.prefix, 'init_g_para.pkl'))
         torch.save(self.d.state_dict(), add_prefix(self.prefix, 'init_d_para.pkl'))
         print('save initial model parameters successfully')
+
+    def load_pretrained_model(self):
+        pass
