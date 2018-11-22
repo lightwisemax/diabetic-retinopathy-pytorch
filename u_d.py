@@ -63,6 +63,8 @@ def parse_args():
     parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
     parser.add_argument('--gpu_counts', default=torch.cuda.device_count(), type=int, help='gpu nums')
     parser.add_argument('--is_l1_loss', default=True, action='store_false', help='use l1_los or not')
+    parser.add_argument('--parent_folder_path', type=str, help='parent folder path')
+    parser.add_argument('--load_epoch', type=int, help='target epoch')
 
     args = parser.parse_args()
 
