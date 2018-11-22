@@ -32,8 +32,10 @@ class evaluate(object):
         self.auto_encoder = self.get_unet('../%s/epoch_%s/g.pkl' % (prefix, epoch))
         if is_contrast:
             self.image_saver = self.contrast
+            print('save contrast images')
         else:
             self.image_saver = self.save
+            print('save single images')
 
     def contrast(self, saved_path, name, inputs):
         """
@@ -169,7 +171,7 @@ if __name__ == '__main__':
         evaluate(prefix, epoch, data_dir)()
     elif len(sys.argv) == 5:
         prefix, epoch, data_dir, is_contrast = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-        is_contrast = 'false' == is_contrast
+        is_contrast = 'true' == is_contrast
         evaluate(prefix, epoch, data_dir, is_contrast)()
     else:
         print('please input 3 or 4 parameters.')
