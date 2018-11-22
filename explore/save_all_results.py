@@ -6,6 +6,7 @@ import sys
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.misc
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
@@ -18,7 +19,7 @@ plt.switch_backend('agg')
 
 
 class evaluate(object):
-    def __init__(self, prefix, epoch, data):
+    def __init__(self, prefix, epoch, data, is_contrast=True):
         """
         save all results
         :param prefix: parent folder such as 'gan145'
@@ -29,8 +30,12 @@ class evaluate(object):
         self.prefix = prefix
         self.epoch = epoch
         self.auto_encoder = self.get_unet('../%s/epoch_%s/g.pkl' % (prefix, epoch))
+        if is_contrast:
+            self.image_saver = self.contrast
+        else:
+            self.image_saver = self.save
 
-    def save_single_image(self, saved_path, name, inputs):
+    def contrast(self, saved_path, name, inputs):
         """
         save unet output as a form of image
         """
@@ -64,6 +69,15 @@ class evaluate(object):
         plt.savefig(add_prefix(saved_path, name))
         print('file %s is saved to %s successfully.' %(name, add_prefix(saved_path, name)))
         plt.close()
+
+    def save(self, saved_path, name, inputs):
+        saved_path += '_single'
+        if not os.path.exists(saved_path):
+            os.makedirs(saved_path)
+        output = self.auto_encoder(inputs)
+        output = self.restore(output)
+        scipy.misc.imsave(add_prefix(saved_path, name), output)
+        print('file %s is saved to %s successfully.' %(name, add_prefix(saved_path, name)))
 
     @staticmethod
     def restore(x):
@@ -133,14 +147,14 @@ class evaluate(object):
             for idx in range(self.batch_size):
                 single_image = lesion_data[idx:(idx + 1), :, :, :]
                 single_name = lesion_names[idx]
-                self.save_single_image(prefix_path, single_name, single_image)
+                self.image_saver(prefix_path, single_name, single_image)
 
             phase = 'normal_data'
             prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
             for idx in range(self.batch_size):
                 single_image = real_data[idx:(idx + 1), :, :, :]
                 single_name = normal_names[idx]
-                self.save_single_image(prefix_path, single_name, single_image)
+                self.image_saver(prefix_path, single_name, single_image)
         print('save all results completely.')
 
 
@@ -150,5 +164,13 @@ if __name__ == '__main__':
     python3 evaluate.py gan156 499 ../data/gan15
     note: the frist parameter denotes  parent folder and the second parameter denotes the status of model
     """
-    prefix, epoch, data_dir = sys.argv[1], sys.argv[2], sys.argv[3]
-    evaluate(prefix, epoch, data_dir)()
+    if len(sys.argv) == 4:
+        prefix, epoch, data_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+        evaluate(prefix, epoch, data_dir)()
+    elif len(sys.argv) == 5:
+        prefix, epoch, data_dir, is_contrast = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+        is_contrast = 'false' == is_contrast
+        evaluate(prefix, epoch, data_dir, is_contrast)()
+    else:
+        print('please input 3 or 4 parameters.')
+
