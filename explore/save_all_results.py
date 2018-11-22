@@ -18,14 +18,14 @@ plt.switch_backend('agg')
 
 
 class evaluate(object):
-    def __init__(self, prefix, epoch):
+    def __init__(self, prefix, epoch, data):
         """
         save all results
         :param prefix: parent folder such as 'gan145'
         :return:
         """
         self.batch_size = 64
-        self.data = '../data/gan'
+        self.data = data
         self.prefix = prefix
         self.epoch = epoch
         self.auto_encoder = self.get_unet('../%s/epoch_%s/g.pkl' % (prefix, epoch))
@@ -88,9 +88,27 @@ class evaluate(object):
 
     def get_dataloader(self):
         if self.data == '../data/gan':
-            print('load targeted easy-classified diabetic retina dataset with size 128 to pretrain unet successfully!!')
+            print('load DR with size 128 successfully!!')
+        elif self.data == '../data/gan_h_flip':
+            print('load horizontal flipped DR with size 128 successfully!!')
+        elif self.data == '../data/gan1':
+            print('load DR with distinct features!!')
+        elif self.data == '../data/gan3':
+            print('load DR with 500 images.')
+        elif self.data == '../data/gan5':
+            print('load DR with 500 images after preprocessing.')
+        elif self.data == '../data/gan7':
+            print('load DR with images attaching ImageNet(lesion area size is equal to (32,32)).')
+        elif self.data == '../data/gan9':
+            print('load resized skin dataset with random and tiny lesion area.')
+        elif self.data == '../data/gan11':
+            print('load resizd skin dataset with one large lesion area.')
+        elif self.data == '../data/gan13':
+            print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
+        elif self.data == '../data/gan15':
+            print('attach 55 distinctly real lesion images based on gan13.')
         else:
-            raise ValueError("the parameter data must be in ['../data/gan']")
+            raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
@@ -129,8 +147,8 @@ class evaluate(object):
 if __name__ == '__main__':
     """
     usage:
-    python3 evaluate.py gan156 499
+    python3 evaluate.py gan156 499 ../data/gan15
     note: the frist parameter denotes  parent folder and the second parameter denotes the status of model
     """
-    prefix, epoch = sys.argv[1], sys.argv[2]
-    evaluate(prefix, epoch)()
+    prefix, epoch, data_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+    evaluate(prefix, epoch, data_dir)()
