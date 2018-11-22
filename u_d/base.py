@@ -307,3 +307,6 @@ class base(object):
 
     def load_pretrained_model(self):
         pass
+
+    def load_config(self):
+        pass
