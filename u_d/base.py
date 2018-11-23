@@ -104,6 +104,10 @@ class base(object):
             print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
         elif self.data == './data/gan15':
             print('attach 55 distinctly real lesion images based on gan13.')
+        elif self.data == './data/gan17':
+            print('training dataset of real normal data from gan15.')
+        elif self.data == './data/gan18':
+            print('validate dataset of unet lesion data output from gan246.')
         else:
             raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
