@@ -21,7 +21,7 @@ class update_u(base):
         self.training_strategies = args.training_strategies
         self.parent_folder_path = args.parent_folder_path
         self.load_epoch = args.load_epoch
-        self.epoch_interval = 1
+        self.epoch_interval = 10
         self.prefix = args.prefix
         self.data = args.data
         self.use_gpu = torch.cuda.is_available()

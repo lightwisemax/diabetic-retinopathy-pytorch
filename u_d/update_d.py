@@ -20,7 +20,7 @@ class update_d(base):
         """
         self.parent_folder_path = args.parent_folder_path
         self.load_epoch = args.load_epoch
-        self.epoch_interval = 1
+        self.epoch_interval = 10
         self.config = self.load_config()
         self.power = self.config['power']
         self.batch_size = args.batch_size

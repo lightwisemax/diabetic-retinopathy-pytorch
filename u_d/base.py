@@ -105,9 +105,13 @@ class base(object):
         elif self.data == './data/gan15':
             print('attach 55 distinctly real lesion images based on gan13.')
         elif self.data == './data/gan17':
-            print('training dataset of real normal data from gan15.')
+            print('training dataset of real normal data from gan15 in gan246.')
         elif self.data == './data/gan18':
             print('validate dataset of unet lesion data output from gan246.')
+        elif self.data == './data/gan19':
+            print('training dataset of real normal data from gan15 in gan253.')
+        elif self.data == './data/gan20':
+            print('validate dataset of unet lesion data output from gan253.')
         else:
             raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
