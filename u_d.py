@@ -24,7 +24,7 @@ np.random.seed(SEED)
 def parse_args():
     parser = argparse.ArgumentParser(description='Training Custom Defined Model')
     parser.add_argument('-ts', '--training_strategies', type=str, default='wgan-gp',
-                        choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization', 'training_iterative'],
+                        choices=['wgan-gp', 'wgan-gp-', 'u-d-c', 'dcgan', 'dcgan-','spectral_normalization', 'training_iterative', 'update_d', 'update_u'],
                         help='training strategies')
     parser.add_argument('-b', '--batch_size', type=int, required=True, help='batch size')
     parser.add_argument('-e', '--epochs', type=int, default=350, help='training epochs')
@@ -51,7 +51,7 @@ def parse_args():
     parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping54/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--pretrained_epochs', type=int, default=0, help='pretrained epochs')
     parser.add_argument('-d', '--data', type=str, default='./data/gan7',
-                        choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3', './data/gan5', './data/gan7', './data/gan9', './data/gan11', './data/gan13', './data/gan15'],
+                        choices=['./data/gan', './data/gan_h_flip', './data/gan1', './data/gan3', './data/gan5', './data/gan7', './data/gan9', './data/gan11', './data/gan13', './data/gan15', './data/gan16', './data/gan17', './data/gan18'],
                         help='dataset type')
     parser.add_argument('-k', '--power', type=int, default=2, help='power of gradient weight matrix')
     parser.add_argument('--gan_type', type=str, default='local_discriminator',
@@ -76,6 +76,14 @@ def main():
         trainer = gan(args)
         script_path = './u_d/gan.py'
         print('update u & d')
+    elif args.training_strategies == 'update_d':
+        trainer = update_d(args)
+        script_path = './u_d/update_d.py'
+        print('d will be updated while u is fixed.')
+    elif args.training_strategies == 'update_u':
+        trainer = update_u(args)
+        script_path = './u_d/update_u.py'
+        print('u will be updated while d is fixed.')
     else:
         raise ValueError('')
     trainer.save_running_script(script_path)
