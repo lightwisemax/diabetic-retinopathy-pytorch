@@ -150,3 +150,26 @@ class update_d(base):
     def get_optimizer(self):
         self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.config['lr'], betas=(self.config['beta1'], 0.9))
         self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=1.0)
+
+    def validate(self, epoch):
+        """
+        there is no need to save unet output
+        """
+        real_data_score = []
+        fake_data_score = []
+        for i , (lesion_data, _, lesion_names, _, real_data, _, normal_names, _) in enumerate(self.dataloader):
+            if self.use_gpu:
+                lesion_data, real_data = lesion_data.cuda(), real_data.cuda()
+            lesion_output= self.d(self.unet(lesion_data))
+            fake_data_score += list(lesion_output.squeeze().cpu().data.numpy().flatten())
+
+            normal_output = self.d(real_data)
+            real_data_score += list(normal_output.squeeze().cpu().data.numpy().flatten())
+
+        prefix_path = '%s/epoch_%d' % (self.prefix, epoch)
+
+        self.plot_hist('%s/score_distribution.png' % prefix_path, real_data_score, fake_data_score)
+        torch.save(self.unet.state_dict(), add_prefix(prefix_path, 'g.pkl'))
+        torch.save(self.d.state_dict(), add_prefix(prefix_path, 'd.pkl'))
+        print('save model parameters successfully when epoch=%d' % epoch)
+
