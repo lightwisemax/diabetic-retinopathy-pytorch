@@ -1,4 +1,5 @@
 import time
+import os
 import torch
 from torch.autograd import grad
 from torch.nn import DataParallel
@@ -167,7 +168,8 @@ class update_d(base):
             real_data_score += list(normal_output.squeeze().cpu().data.numpy().flatten())
 
         prefix_path = '%s/epoch_%d' % (self.prefix, epoch)
-
+        if not os.path.exists(prefix_path):
+            os.makedirs(prefix_path)
         self.plot_hist('%s/score_distribution.png' % prefix_path, real_data_score, fake_data_score)
         torch.save(self.unet.state_dict(), add_prefix(prefix_path, 'g.pkl'))
         torch.save(self.d.state_dict(), add_prefix(prefix_path, 'd.pkl'))
