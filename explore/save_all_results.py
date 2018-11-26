@@ -137,7 +137,7 @@ class evaluate(object):
                                  batch_size=self.batch_size,
                                  shuffle=True,
                                  num_workers=2,
-                                 drop_last=True,
+                                 drop_last=False,
                                  pin_memory=False)
         return data_loader
 
