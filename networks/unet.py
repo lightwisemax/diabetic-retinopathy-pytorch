@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 
 from networks.ops import initialize_weights
@@ -55,20 +56,16 @@ class DownConv(nn.Module):
         self.pooling = pooling
 
         self.conv1 = conv3x3(self.in_channels, self.out_channels)
-        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.2)
-        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.2)
         self.conv2 = conv3x3(self.out_channels, self.out_channels)
 
+        # if self.pooling:
+        #     self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
         if self.pooling:
-            self.pool = nn.Sequential(
-                conv3x3(self.out_channels, out_channels, stride=2),
-                nn.LeakyReLU(0.2)
-            )
-            # self.pool = nn.AvgPool2d(2, 2)
+            self.pool = conv3x3(self.out_channels, self.out_channels, stride=2)
 
     def forward(self, x):
-        x = self.leaky_relu1(self.conv1(x))
-        x = self.leaky_relu2(self.conv2(x))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
         before_pool = x
 
         if self.pooling:
@@ -93,14 +90,13 @@ class UpConv(nn.Module):
 
         self.upconv = upconv2x2(self.in_channels, self.out_channels,
                                 mode=self.up_mode)
-        self.leaky_relu1 = nn.LeakyReLU(negative_slope=0.2)
-        self.leaky_relu2 = nn.LeakyReLU(negative_slope=0.2)
 
         if self.merge_mode == 'concat':
             self.conv1 = conv3x3(
                 2 * self.out_channels, self.out_channels)
         else:
-            raise ValueError('')
+            # num of input channels to conv2 is same
+            self.conv1 = conv3x3(self.out_channels, self.out_channels)
         self.conv2 = conv3x3(self.out_channels, self.out_channels)
 
     def forward(self, from_down, from_up):
@@ -114,8 +110,8 @@ class UpConv(nn.Module):
             x = torch.cat((from_up, from_down), 1)
         else:
             x = from_up + from_down
-        x = self.leaky_relu1(self.conv1(x))
-        x = self.leaky_relu2(self.conv2(x))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
         return x
 
 
@@ -186,7 +182,7 @@ class UNet(nn.Module):
 if __name__ == "__main__":
     model = UNet(3, depth=5, in_channels=3)
     print(model)
-    x = Variable(torch.randn(1, 3, 128, 128), requires_grad=True)
+    x = Variable(torch.randn(1, 3, 64, 64), requires_grad=True)
     out = model(x)
     # print(out)
-    print(out.size())
+    # print(out.size())

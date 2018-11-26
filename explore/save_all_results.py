@@ -163,7 +163,7 @@ class evaluate(object):
 if __name__ == '__main__':
     """
     usage:
-    python3 evaluate.py gan156 499 ../data/gan15
+    python3 save_all_results.py gan156 499 ../data/gan15
     note: the frist parameter denotes  parent folder and the second parameter denotes the status of model
     """
     if len(sys.argv) == 4:
