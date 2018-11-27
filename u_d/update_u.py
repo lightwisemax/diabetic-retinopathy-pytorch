@@ -32,6 +32,7 @@ class update_u(base):
         self.power = self.config['power']
         self.interval = args.interval
         self.debug = args.debug
+        self.normal_weights = args.normal_weights
         self.log_lst = []
 
         self.unet = UNet(3, depth=self.config['u_depth'], in_channels=3)
@@ -105,7 +106,7 @@ class update_u(base):
 
             normal_l1_loss = (normal_gradient * self.l1_criterion(fake_data, real_data)).mean()
             lesion_l1_loss = self.lesion_criterion(fake_data, lesion_data)
-            u_loss = self.lmbda * (normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
+            u_loss = self.lmbda * (self.normal_weights * normal_l1_loss + lesion_l1_loss) + self.alpha * d_loss_
             u_loss.backward()
             self.u_optimizer.step()
 
