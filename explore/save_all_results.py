@@ -43,6 +43,8 @@ class evaluate(object):
         """
         if not os.path.exists(saved_path):
             os.makedirs(saved_path)
+        if os.path.exists(add_prefix(saved_path, name)):
+            return
         output = self.auto_encoder(inputs)
 
         left = self.restore(inputs)
