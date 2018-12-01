@@ -3,8 +3,7 @@ from torch import nn
 from torch.autograd import grad
 from torch.optim import lr_scheduler
 
-from training_strategies.base import base
-from utils.piecewise_l1_loss import PiecewiseL1Loss
+from u_d_c.base import base
 from utils.tv_loss import TVLoss
 
 
@@ -20,7 +19,6 @@ class update_c_d_u(base):
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         self.tv_loss_criterion = TVLoss().cuda()
-        self.piecewise_l1_criterion = PiecewiseL1Loss(nums=300.0 * 3).cuda()
 
     def shuffle(self, lesion_data, normal_data, lesion_labels, normal_labels, lesion_gradients, normal_gradients):
         inputs, labels, gradients = torch.cat((lesion_data, normal_data), 0), torch.cat(
@@ -78,13 +76,7 @@ class update_c_d_u(base):
             d_loss = d_real_loss + d_fake_loss + gradient_penalty
             d_loss.backward()
             self.d_optimizer.step()
-            if step <= self.pretrained_steps and idx % self.interval == 0:
-                log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty)' % (
-                          epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
-                          self.sigma * c_loss.item(),
-                          d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item())
-                print(log)
-                self.log_lst.append(log)
+
             # update u
             if step > self.pretrained_steps:
                 self.u_optimizer.zero_grad()
@@ -93,8 +85,7 @@ class update_c_d_u(base):
 
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = self.piecewise_l1_criterion(fake_data, lesion_data)
-                # lesion_l1_loss = self.l1_criterion(fake_data, lesion_data).mean()
+                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
                 # add total variable loss as a regularization term
                 tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
                 u_loss_ = normal_l1_loss + lesion_l1_loss
@@ -105,12 +96,12 @@ class update_c_d_u(base):
 
                 w_distance = d_real_loss.item() + d_fake_loss.item()
                 info = {
-                        'classifier_loss': self.sigma * c_loss.item(),
-                        'unet_loss': self.gamma * u_loss_.item(),
-                        'adversial_loss': self.alpha * d_loss_.item(),
-                        'loss': u_loss.item(),
-                        'w_distance': w_distance,
-                        'lr': self.get_lr()
+                    'classifier_loss': self.sigma * c_loss.item(),
+                    'unet_loss': self.gamma * u_loss_.item(),
+                    'adversial_loss': self.alpha * d_loss_.item(),
+                    'loss': u_loss.item(),
+                    'w_distance': w_distance,
+                    'lr': self.get_lr()
                 }
                 for tag, value in info.items():
                     self.logger.scalar_summary(tag, value, step)
@@ -123,10 +114,10 @@ class update_c_d_u(base):
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
                               u_d_loss.item(), self.alpha * d_loss_.item(),
-                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(), self.theta * tv_loss.item())
+                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(),
+                              self.theta * tv_loss.item())
                     print(log)
                     self.log_lst.append(log)
-
 
     def get_optimizer(self):
         self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))

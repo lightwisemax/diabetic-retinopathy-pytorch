@@ -6,7 +6,7 @@ import sys
 import torch
 
 sys.path.append('./')
-from training_strategies import *
+from u_d_c import *
 
 
 def parse_args():
@@ -14,12 +14,12 @@ def parse_args():
     parser.add_argument('--training_strategies', '-ts', default='update_c_d_u', choices=['update_c_d_u'], help='training strategies')
     parser.add_argument('--prefix', '-p', type=str, required=True, help='parent folder to save output data')
     parser.add_argument('--is_pretrained_unet', '-u', action='store_true', help='pretrained unet or not')
-    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping50/identical_mapping.pkl', help='pretrained unet')
+    parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping45/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--power', '-k', type=int, default=2, help='power of weight')
-    parser.add_argument('--data', type=str, default='./data/gan_h_flip', choices=['./data/gan', './data/gan_h_flip'], help='dataset type')
+    parser.add_argument('--data', type=str, default='./data/gan', choices=['./data/gan'], help='dataset dir')
     parser.add_argument('--batch_size', '-b', default=64, type=int, required=True, help='batch size')
-    parser.add_argument('--gan_type', type=str, default='local_discriminator',
-                        choices=['conv_bn_leaky_relu', 'resnet', 'multi_scale', 'local_discriminator'],
+    parser.add_argument('--gan_type', type=str, default='multi_scale',
+                        choices=['conv_bn_leaky_relu', 'multi_scale'],
                         help='discriminator type')
     parser.add_argument('--u_depth', type=int, default=5, help='unet dpeth')
     parser.add_argument('--d_depth', type=int, default=7, help='discriminator depth')

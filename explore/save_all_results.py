@@ -105,24 +105,6 @@ class evaluate(object):
     def get_dataloader(self):
         if self.data == '../data/gan':
             print('load DR with size 128 successfully!!')
-        elif self.data == '../data/gan_h_flip':
-            print('load horizontal flipped DR with size 128 successfully!!')
-        elif self.data == '../data/gan1':
-            print('load DR with distinct features!!')
-        elif self.data == '../data/gan3':
-            print('load DR with 500 images.')
-        elif self.data == '../data/gan5':
-            print('load DR with 500 images after preprocessing.')
-        elif self.data == '../data/gan7':
-            print('load DR with images attaching ImageNet(lesion area size is equal to (32,32)).')
-        elif self.data == '../data/gan9':
-            print('load resized skin dataset with random and tiny lesion area.')
-        elif self.data == '../data/gan11':
-            print('load resizd skin dataset with one large lesion area.')
-        elif self.data == '../data/gan13':
-            print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
-        elif self.data == '../data/gan15':
-            print('attach 55 distinctly real lesion images based on gan13.')
         else:
             raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
         transform = transforms.Compose([
@@ -146,14 +128,16 @@ class evaluate(object):
         for (lesion_data, _, lesion_names, _, real_data, _, normal_names, _) in dataloader:
             phase = 'lesion_data'
             prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
-            for idx in range(self.batch_size):
+            nums = min(self.batch_size, lesion_data.size(0))
+            for idx in range(nums):
                 single_image = lesion_data[idx:(idx + 1), :, :, :]
                 single_name = lesion_names[idx]
                 self.image_saver(prefix_path, single_name, single_image)
 
             phase = 'normal_data'
             prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
-            for idx in range(self.batch_size):
+            nums = min(self.batch_size, real_data.size(0))
+            for idx in range(nums):
                 single_image = real_data[idx:(idx + 1), :, :, :]
                 single_name = normal_names[idx]
                 self.image_saver(prefix_path, single_name, single_image)

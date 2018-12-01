@@ -86,34 +86,8 @@ class base(object):
     def get_dataloader(self):
         if self.data == './data/gan':
             print('load DR with size 128 successfully!!')
-        elif self.data == './data/gan_h_flip':
-            print('load horizontal flipped DR with size 128 successfully!!')
-        elif self.data == './data/gan1':
-            print('load DR with distinct features!!')
-        elif self.data == './data/gan3':
-            print('load DR with 500 images.')
-        elif self.data == './data/gan5':
-            print('load DR with 500 images after preprocessing.')
-        elif self.data == './data/gan7':
-            print('load DR with images attaching ImageNet(lesion area size is equal to (32,32)).')
-        elif self.data == './data/gan9':
-            print('load resized skin dataset with random and tiny lesion area.')
-        elif self.data == './data/gan11':
-            print('load resizd skin dataset with one large lesion area.')
-        elif self.data == './data/gan13':
-            print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
-        elif self.data == './data/gan15':
-            print('attach 55 distinctly real lesion images based on gan13.')
-        elif self.data == './data/gan17':
-            print('training dataset of real normal data from gan15 in gan246.')
-        elif self.data == './data/gan18':
-            print('validate dataset of unet lesion data output from gan246.')
-        elif self.data == './data/gan19':
-            print('training dataset of real normal data from gan15 in gan253.')
-        elif self.data == './data/gan20':
-            print('validate dataset of unet lesion data output from gan253.')
         else:
-            raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
+            raise ValueError("the parameter data must be in ['./data/gan']")
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(self.mean, self.std)

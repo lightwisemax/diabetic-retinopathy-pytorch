@@ -17,13 +17,13 @@ from torch.nn import DataParallel
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
+from utils.ssim import SSIM
 
 sys.path.append('./')
 from utils.Logger import Logger
 from utils.read_data import EasyDR
 from networks.unet import UNet
 from utils.util import set_prefix, write, add_prefix, rgb2gray
-from benchmark.ssim import SSIM
 
 plt.switch_backend('agg')
 
@@ -36,7 +36,7 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool,
                     help='use gpu or not')
 parser.add_argument('-i', '--interval_freq', default=12, type=int,
                     help='printing log frequence')
-parser.add_argument('-d', '--data', default='./data/gan10',
+parser.add_argument('-d', '--data', default='./data/target_128',
                     help='path to dataset')
 parser.add_argument('-p', '--prefix', required=True, type=str,
                     help='folder prefix')
@@ -45,14 +45,12 @@ parser.add_argument('-a', '--alpha', default=6, type=int,
 parser.add_argument('--unet_depth', type=int, default=5, help='unet depth')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--debug', action='store_true', default=False, help='in debug or not(default: false)')
-parser.add_argument('--loss', choices=['l1_loss', 'mse_loss', 'ssim'])
 
 def main():
     global args, logger
     args = parser.parse_args()
     logger = Logger(add_prefix(args.prefix, 'logs'))
     set_prefix(args.prefix, __file__)
-    # model = UNet(3, depth=args.unet_depth, in_channels=3, has_conv1x1=True, has_bn=False)
     model = UNet(3, depth=5, in_channels=3)
     print(model)
     print('load unet with depth=5')
@@ -101,26 +99,8 @@ def load_dataset():
     valdir = os.path.join(args.data, 'val')
     mean = [0.5, 0.5, 0.5]
     std = [0.5, 0.5, 0.5]
-    if args.data == './data/flip':
+    if args.data == './data/target_128':
         print('load horizontal flipped DR with size 128 successfully!!')
-    elif args.data == './data/target_128':
-        print('load DR with size 128 successfully!!')
-    elif args.data == './data/gan2':
-        print('load DR with distinct features!!')
-    elif args.data == './data/gan4':
-        print('load DR with 500 images.')
-    elif args.data == './data/gan6':
-        print('load DR with 500 images after preprocessing.')
-    elif args.data == './data/gan8':
-        print('load DR with images attaching ImageNet(lesion area size is equal to (32,32)).')
-    elif args.data == './data/gan10':
-        print('load resized skin dataset with random and tiny lesion area.')
-    elif args.data == './data/gan12':
-        print('load resizd skin dataset with one large lesion area.')
-    elif args.data == './data/gan14':
-        print('load DR with images attaching ImageNet(lesion area size is equal to (8,8)).')
-    elif args.data == './data/gan16':
-        print('attach 55 distinctly real lesion images based on gan13.')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in ['./data/target_128']")
     normalize = transforms.Normalize(mean, std)
