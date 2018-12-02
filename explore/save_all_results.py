@@ -29,8 +29,9 @@ class evaluate(object):
         self.data = data
         self.prefix = prefix
         self.epoch = epoch
+        self.is_contrast = is_contrast
         self.auto_encoder = self.get_unet('../%s/epoch_%s/g.pkl' % (prefix, epoch))
-        if is_contrast:
+        if self.is_contrast:
             self.image_saver = self.contrast
             print('save contrast images')
         else:
@@ -99,7 +100,7 @@ class evaluate(object):
     def get_unet(pretrain_unet_path):
         unet = UNet(3, depth=5, in_channels=3)
         print(unet)
-        print('load uent with depth %d and downsampling will be performed for 4 times!!')
+        print('load uent with depth = 5 and downsampling will be performed for 4 times!!')
         unet.load_state_dict(weight_to_cpu(pretrain_unet_path))
         print('load pretrained unet!')
         return unet
@@ -108,7 +109,7 @@ class evaluate(object):
         if self.data == '../data/gan':
             print('load DR with size 128 successfully!!')
         else:
-            raise ValueError("the parameter data must be in ['./data/gan', './data/gan_h_flip']")
+            raise ValueError("the parameter data must be in ['./data/gan']")
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
@@ -128,28 +129,24 @@ class evaluate(object):
     def __call__(self):
         dataloader = self.get_dataloader()
         for (lesion_data, _, lesion_names, _, real_data, _, normal_names, _) in dataloader:
-            phase = 'lesion_data'
-            prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
-            nums = min(self.batch_size, lesion_data.size(0))
-            for idx in range(nums):
-                single_image = lesion_data[idx:(idx + 1), :, :, :]
-                single_name = lesion_names[idx]
-                self.image_saver(prefix_path, single_name, single_image)
-
-            phase = 'normal_data'
-            prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
-            nums = min(self.batch_size, real_data.size(0))
-            for idx in range(nums):
-                single_image = real_data[idx:(idx + 1), :, :, :]
-                single_name = normal_names[idx]
-                self.image_saver(prefix_path, single_name, single_image)
+            self.save2disk('lesion_data', lesion_names, lesion_data)
+            self.save2disk('normal_data', normal_names, real_data)
         print('save all results completely.')
+
+    def save2disk(self, phase, names, data):
+        prefix_path = '../%s/all_results_%s/%s' % (self.prefix, self.epoch, phase)
+        nums = min(self.batch_size, data.size(0))
+        for idx in range(nums):
+            single_image = data[idx:(idx + 1), :, :, :]
+            single_name = names[idx]
+            self.image_saver(prefix_path, single_name, single_image)
 
 
 if __name__ == '__main__':
     """
     usage:
-    python3 save_all_results.py gan156 499 ../data/gan15
+    python save_all_results.py gan156 499 ../data/gan15
+    python save_all_results.py gan156 499 ../data/gan15 false
     note: the frist parameter denotes  parent folder and the second parameter denotes the status of model
     """
     if len(sys.argv) == 4:
