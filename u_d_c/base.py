@@ -164,8 +164,8 @@ class base(object):
     def get_dataloader(self):
         if self.data == './data/gan':
             print('load DR with size 128 successfully!!')
-        elif self.data == './data/gan_h_flip':
-            print('load horizontal flipped DR with size 128 successfully!!')
+        elif self.data == './data/contrast_dataset':
+            print('load contrast dataset with size 128 successfully!!')
         else:
             raise ValueError("the parameter data must be in ['./data/gan']")
         transform = transforms.Compose([

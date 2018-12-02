@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('--is_pretrained_unet', '-u', action='store_true', help='pretrained unet or not')
     parser.add_argument('--pretrain_unet_path', type=str, default='./identical_mapping45/identical_mapping.pkl', help='pretrained unet')
     parser.add_argument('--power', '-k', type=int, default=2, help='power of weight')
-    parser.add_argument('--data', type=str, default='./data/gan', choices=['./data/gan'], help='dataset dir')
+    parser.add_argument('--data', type=str, default='./data/gan', choices=['./data/gan', './data/contrast_dataset'], help='dataset dir')
     parser.add_argument('--batch_size', '-b', default=64, type=int, required=True, help='batch size')
     parser.add_argument('--gan_type', type=str, default='multi_scale',
                         choices=['conv_bn_leaky_relu', 'multi_scale'],

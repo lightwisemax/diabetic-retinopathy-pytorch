@@ -50,6 +50,6 @@ if __name__ == '__main__':
     # Split({'normal': './ds/8_8/normal', 'lesion': './ds/8_8/lesion'},
     #       './ds/8_8/train',
     #       './ds/8_8/val')()
-    Split({'normal': '../data/gan15/normal', 'lesion': '../data/gan15/lesion'},
-          '../data/gan17/train',
-          '../data/gan17/val')()
+    Split({'normal': '../data/contrast_dataset/normal', 'lesion': '../data/contrast_dataset/lesion'},
+          '../data/split_contrast_dataset/train',
+          '../data/split_contrast_dataset/val')()

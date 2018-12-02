@@ -58,17 +58,8 @@ def main():
         model = DataParallel(model).cuda()
     else:
         raise RuntimeError('there is no gpu')
-    if args.loss == 'l1_loss':
-        criterion = nn.L1Loss(reduce=False).cuda()
-        print('use l1_loss')
-    elif args.loss == 'mse_loss':
-        criterion = nn.MSELoss(reduce=False).cuda()
-        print('use mse_loss')
-    elif args.loss == 'ssim':
-        criterion = SSIM().cuda()
-        print('use ssim')
-    else:
-        raise ValueError('')
+    criterion = nn.L1Loss(reduce=False).cuda()
+    print('use l1_loss')
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     # accelerate the speed of training
     cudnn.benchmark = True
@@ -101,6 +92,8 @@ def load_dataset():
     std = [0.5, 0.5, 0.5]
     if args.data == './data/target_128':
         print('load horizontal flipped DR with size 128 successfully!!')
+    elif args.data == './data/split_contrast_dataset':
+        print('load contrast dataset successfully.')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in ['./data/target_128']")
     normalize = transforms.Normalize(mean, std)
@@ -156,10 +149,7 @@ def train(train_loader, model, optimizer, criterion, epoch):
         optimizer.zero_grad()
         # forward
         outputs = model(inputs)
-        if args.loss == 'ssim':
-            loss = -criterion(outputs, inputs)
-        else:
-            loss = (weights * criterion(outputs, inputs)).mean()
+        loss = (weights * criterion(outputs, inputs)).mean()
         loss.backward()
 
         optimizer.step()
