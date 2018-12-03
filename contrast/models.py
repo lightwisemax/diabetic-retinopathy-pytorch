@@ -1,101 +1,80 @@
 import torch
-import math
 import torch.nn as nn
 
+class VGG(nn.Module):
 
-class vgg(nn.Module):
-
-    def __init__(self, num_classes=1):
-        super(vgg, self).__init__()
-
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(3, 64, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+    def __init__(self, features, num_classes=1000, init_weights=True):
+        super(VGG, self).__init__()
+        self.features = features
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 4 * 4, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, num_classes),
         )
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 128, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-        )
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(128, 256, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-        )
-        self.conv4 = nn.Sequential(
-            nn.Conv2d(256, 512, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-        )
-        self.conv5 = nn.Sequential(
-            nn.Conv2d(512, 512, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, 3, 1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 512, 3, 1, padding=1),
-            nn.ReLU(),
-        )
-
-        self.avg_pool = nn.AvgPool2d(8, 8)
-        self.fc = nn.Sequential(
-            nn.Dropout2d(),
-            nn.Linear(512, num_classes, bias=False)
-        )
-        self._initialize_weights()
+        if init_weights:
+            self._initialize_weights()
 
     def forward(self, x):
-
-        x = self.conv1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-
-        x = self.avg_pool(x)
+        x = self.features(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.classifier(x)
         return x
 
     def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
                 if m.bias is not None:
-                    m.bias.data.zero_()
+                    nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
 
+
+def make_layers(cfg, batch_norm=False):
+    layers = []
+    in_channels = 3
+    for v in cfg:
+        if v == 'M':
+            layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+        else:
+            conv2d = nn.Conv2d(in_channels, v, kernel_size=3, padding=1)
+            if batch_norm:
+                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+            else:
+                layers += [conv2d, nn.ReLU(inplace=True)]
+            in_channels = v
+    return nn.Sequential(*layers)
+
+
+cfg = {
+    'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+    'E': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
+}
+
+
+def vgg19(num_classes, pretrained=False):
+    """VGG 19-layer model (configuration "E")
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    """
+    model = VGG(make_layers(cfg['E']), num_classes)
+    if pretrained:
+        pass
+    return model
 
 if __name__ == '__main__':
-    tensor = torch.randn((1, 3, 128, 128))
-    labels = torch.LongTensor([1, 0])
-    model = vgg()
+    net = vgg19(pretrained=False, num_classes=2)
 
-    params = list(model.parameters())
-    print(model)
-    output = model(tensor)
-    import torch.nn.functional as F
-    h_x = F.softmax(output, dim=1).data.squeeze()
-    probs, idx = output.sort(0, True)
-    print(idx[0])
-    # criterion = nn.CrossEntropyLoss()
-    # print(criterion(output, labels))
-
-
+    x = torch.randn((2, 3, 128, 128))
+    print(net(x))

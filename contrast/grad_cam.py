@@ -1,114 +1,176 @@
-"""
-Grad-CAM can be widely used.
-"""
+import torch
+from torch.autograd import Variable
+import cv2
 import os
 import sys
 import numpy as np
-import torch
-import torchvision.transforms as transforms
-from PIL import Image
-from torch.nn import functional as F
-import cv2
 
 sys.path.append('../')
-from networks.unet import UNet
-from networks.resnet import resnet18
-from utils.util import write, weight_to_cpu
+from contrast.models import vgg19
+from utils.util import add_prefix, remove_prefix, mkdir
+
+
+class FeatureExtractor():
+    """ Class for extracting activations and 
+    registering gradients from targetted intermediate layers """
+
+    def __init__(self, model, target_layers):
+        self.model = model
+        self.target_layers = target_layers
+        self.gradients = []
+
+    def save_gradient(self, grad):
+        self.gradients.append(grad)
+
+    def __call__(self, x):
+        outputs = []
+        self.gradients = []
+        for name, module in self.model._modules.items():
+            x = module(x)
+            if name in self.target_layers:
+                x.register_hook(self.save_gradient)
+                outputs += [x]
+        return outputs, x
+
+
+class ModelOutputs():
+    """ Class for making a forward pass, and getting:
+	1. The network output.
+	2. Activations from intermeddiate targetted layers.
+	3. Gradients from intermeddiate targetted layers. """
+
+    def __init__(self, model, target_layers):
+        self.model = model
+        self.feature_extractor = FeatureExtractor(self.model.features, target_layers)
+
+    def get_gradients(self):
+        return self.feature_extractor.gradients
+
+    def __call__(self, x):
+        target_activations, output = self.feature_extractor(x)
+        output = output.view(output.size(0), -1)
+        output = self.model.classifier(output)
+        return target_activations, output
+
+
+def preprocess_image(img):
+    means = [0.651, 0.4391, 0.2991]
+    stds = [0.1046, 0.0846, 0.0611]
+
+    preprocessed_img = img.copy()[:, :, ::-1]
+    for i in range(3):
+        preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
+        preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]
+    preprocessed_img = np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
+    preprocessed_img = torch.from_numpy(preprocessed_img)
+    preprocessed_img.unsqueeze_(0)
+    input = Variable(preprocessed_img, requires_grad=True)
+    return input
+
+
+def show_cam_on_image(img, mask, path):
+    heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap) / 255
+    cam = heatmap + np.float32(img)
+    cam = cam / np.max(cam)
+    cv2.imwrite(path, np.uint8(255 * cam))
+
+
+def load_pretrained_model(prefix):
+    checkpoint = torch.load(add_prefix(prefix, 'model_best.pth.tar'))
+    model = vgg19(num_classes=2, pretrained=False)
+    print('load pretrained vgg19 successfully.')
+    model.load_state_dict(remove_prefix(checkpoint['state_dict']))
+    return model
 
 
 class GradCam(object):
-    def __init__(self, prefix, epoch):
-        self.data_dir = '../data/gan'
-        self.prefix = prefix
-        self.epoch = epoch
-        self.pretrained_classifier, self.pretrained_unet = self.load_pretrained_model()
-        self.finalconv_name = 'layer4'
-        self.saved_path = '../%s/grad_cam_%s' % (self.prefix, self.epoch)
+    def __init__(self, model, target_layer_names, use_cuda):
+        self.model = model
+        self.model.eval()
+        self.cuda = use_cuda
+        if self.cuda:
+            self.model = model.cuda()
 
-    def load_pretrained_model(self):
-        classifier, unet = resnet18(is_ptrtrained=False), UNet(3, depth=5, in_channels=3)
-        print(classifier)
-        print(unet)
-        classifier.load_state_dict(weight_to_cpu(path='../%s/epoch_%s/c.pkl' % (self.prefix, self.epoch)))
-        unet.load_state_dict(weight_to_cpu(path='../%s/epoch_%s/g.pkl' % (self.prefix, self.epoch)))
-        print('load pretrained resnet18 successfully.')
-        print('load pretrained unet successfully.')
-        return classifier, unet
+        self.extractor = ModelOutputs(self.model, target_layer_names)
 
-    @staticmethod
-    def returnCAM(feature_conv, weight_softmax, class_idx):
-        # generate the class activation maps upsample to 128x128
-        size_upsample = (128, 128)
-        bz, nc, h, w = feature_conv.shape
-        output_cam = []
-        for _ in class_idx:
-            cam = weight_softmax[class_idx].dot(feature_conv.reshape((nc, h * w)))
-            cam = cam.reshape(h, w)
-            cam = cam - np.min(cam)
-            cam_img = cam / np.max(cam)
-            cam_img = np.uint8(255 * cam_img)
-            output_cam.append(cv2.resize(cam_img, size_upsample))
-        return output_cam
+    def forward(self, input):
+        return self.model(input)
 
-    def __call__(self):
-        results = dict()
-        features_blobs = []
+    def __call__(self, input, index=None):
+        if self.cuda:
+            features, output = self.extractor(input.cuda())
+        else:
+            features, output = self.extractor(input)
 
-        def hook_feature(module, input, output):
-            features_blobs.append(output.data.cpu().numpy())
+        if index == None:
+            index = np.argmax(output.cpu().data.numpy())
 
-        self.pretrained_classifier._modules.get(self.finalconv_name).register_forward_hook(hook_feature)
+        one_hot = np.zeros((1, output.size()[-1]), dtype=np.float32)
+        one_hot[0][index] = 1
+        one_hot = Variable(torch.from_numpy(one_hot), requires_grad=True)
+        if self.cuda:
+            one_hot = torch.sum(one_hot.cuda() * output)
+        else:
+            one_hot = torch.sum(one_hot * output)
 
-        params = list(self.pretrained_classifier.parameters())
+        self.model.features.zero_grad()
+        self.model.classifier.zero_grad()
+        one_hot.backward(retain_graph=True)
 
-        weight_softmax = np.squeeze(params[-2].data.numpy())
+        grads_val = self.extractor.get_gradients()[-1].cpu().data.numpy()
 
-        normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                                         std=[0.5, 0.5, 0.5])
+        target = features[-1]
+        target = target.cpu().data.numpy()[0, :]
 
-        preprocess = transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])
+        weights = np.mean(grads_val, axis=(2, 3))[0, :]
+        cam = np.zeros(target.shape[1:], dtype=np.float32)
 
-        classes = {0: 'lesion',
-                   1: 'normal'}
-        for phase in ['lesion', 'normal']:
-            path = os.path.join(self.data_dir, phase)
-            for name in os.listdir(path):
-                abs_path = os.path.join(path, name)
-                img_pil = Image.open(abs_path)
-                img_tensor = preprocess(img_pil).unsqueeze(0)
-                logit = self.pretrained_classifier(self.pretrained_unet(img_tensor) - img_tensor)
-                h_x = F.softmax(logit, dim=1).data.squeeze()
-                probs, idx = h_x.sort(0, True)
-                CAMs = self.returnCAM(features_blobs[0], weight_softmax, [idx[0]])
-                print('predicted category=%s,probability=%.4f' % (classes[idx[0].item()], probs[0].item()))
-                results = {'name': name,
-                           'category': classes[idx[0].item()],
-                           'probability': probs[0].item()
-                           }
-                img = cv2.imread(abs_path)
-                height, width, _ = img.shape
-                heatmap = cv2.applyColorMap(cv2.resize(CAMs[0], (width, height)), cv2.COLORMAP_JET)
-                result = heatmap * 0.2 + img * 0.6
-                parent_folder = '%s/%s' % (self.saved_path, phase)
+        for i, w in enumerate(weights):
+            cam += w * target[i, :, :]
 
-                if not os.path.exists(parent_folder):
-                    os.makedirs(parent_folder)
-                print('save %s to %s successfully.' % (name, os.path.join(parent_folder, name)))
-                cv2.imwrite('%s/%s' % (parent_folder, name), result)
-        write(results, '%s/results.json' % self.saved_path)
+        cam = np.maximum(cam, 0)
+        cam = cv2.resize(cam, (128, 128))
+        cam = cam - np.min(cam)
+        cam = cam / np.max(cam)
+        return cam
+
+
+def main(prefix, data_dir, saved_path):
+    grad_cam = GradCam(model=load_pretrained_model(prefix), target_layer_names=["35"], use_cuda=False)
+    # If None, returns the map for the highest scoring category.
+    # Otherwise, targets the requested index.
+    target_index = None
+
+    for phase in ['train', 'val']:
+        path = os.path.join(data_dir, phase)
+        parent_folder = '%s/%s' % (saved_path, phase)
+        mkdir(parent_folder)
+        for name in os.listdir(path):
+            if '.jpeg' not in name:
+                continue
+            image_path = os.path.join(path, name)
+            img = cv2.imread(image_path, 1)
+            img = np.float32(cv2.resize(img, (128, 128))) / 255
+            input = preprocess_image(img)
+            mask = grad_cam(input, target_index)
+            show_cam_on_image(img, mask, '%s/%s' % (parent_folder, name))
 
 
 if __name__ == '__main__':
+    """ python grad_cam.py <path_to_image>
+	1. Loads an image with opencv.
+	2. Preprocesses it for VGG19 and converts to a pytorch variable.
+	3. Makes a forward pass to find the category index with the highest score,
+	and computes intermediate activations.
+	Makes the visualization. """
+    # Can work with any model, but it assumes that the model has a
+    # feature method, and a classifier method,
+    # as in the VGG models in torchvision.
     """
     usage:
-    python3 grad_cam.py gan156 499
-    note: the frist parameter denotes results saved folder and the second parameter denotes saved folder.
-    utilize grad-cam to visulize resnet18
+    python cam.py ../vgg01 ../data/test ../grad_cam01
     """
-    # classifier, unet = resnet18(is_ptrtrained=False), UNet(3, depth=5, in_channels=3)
+    prefix, data_dir, saved_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
-    prefix, epoch = sys.argv[1], sys.argv[2]
-    GradCam(prefix, epoch)()
+    main(prefix, data_dir, saved_path)

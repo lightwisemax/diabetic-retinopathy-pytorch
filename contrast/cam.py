@@ -109,7 +109,7 @@ def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
 if __name__ == '__main__':
     """
     usage:
-    python3 cam.py ../vgg01 ../cam01
+    python cam.py ../vgg01 ../cam01 resnet
     note: the frist parameter denotes  classifier saved folder and the second parameter denotes saved folder
     """
     prefix, saved_path, model_type = sys.argv[1], sys.argv[2], sys.argv[3]
