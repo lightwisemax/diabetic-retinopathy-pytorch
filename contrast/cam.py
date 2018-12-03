@@ -13,7 +13,7 @@ import cv2
 
 
 sys.path.append('../')
-from contrast.models import vgg
+from contrast.models import vgg19
 from networks.resnet import resnet18
 from utils.util import add_prefix, remove_prefix, write
 
@@ -21,7 +21,7 @@ from utils.util import add_prefix, remove_prefix, write
 def load_pretrained_model(prefix, model_type):
     checkpoint = torch.load(add_prefix(prefix, 'model_best.pth.tar'))
     if model_type == 'vgg':
-        model = vgg()
+        model = vgg19(pretrained=False, num_classes=2)
         print('load vgg successfully.')
     elif model_type == 'resnet':
         model = resnet18(is_ptrtrained=False)
