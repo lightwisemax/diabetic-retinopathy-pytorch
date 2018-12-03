@@ -3,11 +3,12 @@ from torch.autograd import Variable
 import cv2
 import os
 import sys
+import torch.nn.functional as F
 import numpy as np
 
 sys.path.append('../')
 from contrast.models import vgg19
-from utils.util import add_prefix, remove_prefix, mkdir
+from utils.util import add_prefix, remove_prefix, mkdir, write
 
 
 class FeatureExtractor():
@@ -89,6 +90,9 @@ class GradCam(object):
         self.model = model
         self.model.eval()
         self.cuda = use_cuda
+        self.classes = {
+            0: 'lesion',
+            1: 'normal'}
         if self.cuda:
             self.model = model.cuda()
 
@@ -133,7 +137,13 @@ class GradCam(object):
         cam = cv2.resize(cam, (128, 128))
         cam = cam - np.min(cam)
         cam = cam / np.max(cam)
-        return cam
+
+        # get target classes and predicted probability
+        logit = self.forward(input)
+        h_x = F.softmax(logit, dim=1).data.squeeze()
+        probs, idx = h_x.sort(0, True)
+        print('predicted category=%s,probability=%.4f' % (self.classes[idx[0].item()], probs[0].item()))
+        return cam, dict(category=self.classes[idx[0].item()], probability=probs[0].item())
 
 
 def main(prefix, data_dir, saved_path):
@@ -141,7 +151,7 @@ def main(prefix, data_dir, saved_path):
     # If None, returns the map for the highest scoring category.
     # Otherwise, targets the requested index.
     target_index = None
-
+    results = dict()
     for phase in ['train', 'val']:
         path = os.path.join(data_dir, phase)
         parent_folder = '%s/%s' % (saved_path, phase)
@@ -153,8 +163,11 @@ def main(prefix, data_dir, saved_path):
             img = cv2.imread(image_path, 1)
             img = np.float32(cv2.resize(img, (128, 128))) / 255
             input = preprocess_image(img)
-            mask = grad_cam(input, target_index)
+            mask, info = grad_cam(input, target_index)
             show_cam_on_image(img, mask, '%s/%s' % (parent_folder, name))
+            results[name] = info
+    write(results, '%s/results.json' % saved_path)
+
 
 
 if __name__ == '__main__':
@@ -164,7 +177,7 @@ if __name__ == '__main__':
     # reference: https://github.com/jacobgil/pytorch-grad-cam/blob/master/grad-cam.py
     """
     usage:
-    python cam.py ../vgg01 ../data/test ../grad_cam01
+    python cam.py ../classifier02 ../data/target128 ../grad_cam01
     """
     prefix, data_dir, saved_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
