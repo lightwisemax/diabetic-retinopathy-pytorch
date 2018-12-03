@@ -158,15 +158,10 @@ def main(prefix, data_dir, saved_path):
 
 
 if __name__ == '__main__':
-    """ python grad_cam.py <path_to_image>
-	1. Loads an image with opencv.
-	2. Preprocesses it for VGG19 and converts to a pytorch variable.
-	3. Makes a forward pass to find the category index with the highest score,
-	and computes intermediate activations.
-	Makes the visualization. """
     # Can work with any model, but it assumes that the model has a
     # feature method, and a classifier method,
     # as in the VGG models in torchvision.
+    # reference: https://github.com/jacobgil/pytorch-grad-cam/blob/master/grad-cam.py
     """
     usage:
     python cam.py ../vgg01 ../data/test ../grad_cam01
