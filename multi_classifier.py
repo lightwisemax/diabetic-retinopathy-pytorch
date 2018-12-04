@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 
 sys.path.append('./')
 from networks.resnet import resnet18
-from contrast.models import vgg
+from contrast.models import vgg19
 
 from utils.util import set_prefix, write, add_prefix
 from utils.read_data import EasyDR
@@ -95,7 +95,7 @@ def main():
 
 def model_selector(model_type):
     if model_type == 'vgg':
-        return vgg()
+        return vgg19(pretrained=False, num_classes=2)
     elif model_type == 'resnet18':
         return resnet18(is_ptrtrained=False)
     else:
