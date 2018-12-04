@@ -11,23 +11,15 @@ from PIL import Image
 from torch.nn import functional as F
 import cv2
 
-
 sys.path.append('../')
-from contrast.models import vgg19
 from networks.resnet import resnet18
 from utils.util import add_prefix, remove_prefix, write
 
 
-def load_pretrained_model(prefix, model_type):
+def load_pretrained_model(prefix):
     checkpoint = torch.load(add_prefix(prefix, 'model_best.pth.tar'))
-    if model_type == 'vgg':
-        model = vgg19(pretrained=False, num_classes=2)
-        print('load vgg successfully.')
-    elif model_type == 'resnet':
-        model = resnet18(is_ptrtrained=False)
-        print('load resnet18 successfully.')
-    else:
-        raise ValueError('')
+    model = resnet18(is_ptrtrained=False)
+    print('load resnet18 successfully.')
     model.load_state_dict(remove_prefix(checkpoint['state_dict']))
     return model
 
@@ -47,15 +39,9 @@ def returnCAM(feature_conv, weight_softmax, class_idx):
     return output_cam
 
 
-def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
-    if model_type == 'vgg':
-        finalconv_name = 'conv5'
-    elif model_type == 'resnet':
-        finalconv_name = 'layer4'
-    else:
-        raise ValueError('')
+def main(prefix, saved_path, data_dir='../data/target_128', finalconv_name='layer4'):
     results = dict()
-    vgg_cam = load_pretrained_model(prefix, model_type)
+    vgg_cam = load_pretrained_model(prefix)
     vgg_cam.eval()
     features_blobs = []
 
@@ -66,7 +52,7 @@ def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
 
     params = list(vgg_cam.parameters())
 
-    weight_softmax = np.squeeze(params[-2 if model_type=='resnet' else -1].data.numpy())
+    weight_softmax = np.squeeze(params[-2].data.numpy())
 
     normalize = transforms.Normalize(mean=[0.651, 0.4391, 0.2991],
                                      std=[0.1046, 0.0846, 0.0611])
@@ -81,6 +67,8 @@ def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
     for phase in ['train', 'val']:
         path = os.path.join(data_dir, phase)
         for name in os.listdir(path):
+            if '.jpeg' not in name:
+                continue
             abs_path = os.path.join(path, name)
             img_pil = Image.open(abs_path)
             img_tensor = preprocess(img_pil).unsqueeze(0)
@@ -94,7 +82,7 @@ def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
             results[name] = {
                 'category': classes[idx[0].item()],
                 'probability': probs[0].item()
-                }
+            }
             img = cv2.imread(abs_path)
             height, width, _ = img.shape
             heatmap = cv2.applyColorMap(cv2.resize(CAMs[0], (width, height)), cv2.COLORMAP_JET)
@@ -106,11 +94,12 @@ def main(prefix, saved_path, model_type, data_dir='../data/target_128'):
             cv2.imwrite('%s/%s' % (parent_folder, name), result)
     write(results, '%s/results.json' % saved_path)
 
+
 if __name__ == '__main__':
     """
     usage:
-    python cam.py ../vgg01 ../cam01 resnet
+    python cam.py ../vgg01 ../cam_resnet
     note: the frist parameter denotes  classifier saved folder and the second parameter denotes saved folder
     """
-    prefix, saved_path, model_type = sys.argv[1], sys.argv[2], sys.argv[3]
-    main(prefix, saved_path, model_type)
+    prefix, saved_path = sys.argv[1], sys.argv[2]
+    main(prefix, saved_path)

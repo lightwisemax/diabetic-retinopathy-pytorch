@@ -62,6 +62,10 @@ def clear(path):
     else:
         os.mkdir(path)
 
+def mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 
 # write json(dict) to txt file
 def write(dic, path):
@@ -249,11 +253,9 @@ def get_today():
     return str(today)
 
 if __name__ == '__main__':
-    # tensor = Variable(torch.randn((1, 3, 224, 224)))
-    # to_image_type(tensor)
     # data_dir = '../data/diabetic_normal/train'
     # data_dir = '../data/mnist/train'
     # data_dir = '../data/xray_all/train'
     # data_dir = '../data/target/train'
-    # write_list(['1', '2'], 'demo.txt')
-    pass
+    data_dir = '../data/split_contrast_dataset/train'
+    print(get_mean_and_std(data_dir))

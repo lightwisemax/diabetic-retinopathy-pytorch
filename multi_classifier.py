@@ -36,7 +36,7 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool, help
 parser.add_argument('--step_size', default=50, type=int, help='learning rate decay interval')
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay scope')
 parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printing log frequence')
-parser.add_argument('--data', '-d', default='./data/target_128', help='path to dataset')
+parser.add_argument('--data', '-d', default='./data/target_128', chioces=['./data/split_contrast_dataset', './data/target_128'] , help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
 parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet18'])
@@ -178,41 +178,44 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 
 def load_dataset():
     if args.data == './data/target_128':
-        traindir = os.path.join(args.data, 'train')
-        valdir = os.path.join(args.data, 'val')
         mean = [0.651, 0.4391, 0.2991]
         std = [0.1046, 0.0846, 0.0611]
-        normalize = transforms.Normalize(mean, std)
-        pre_transforms = transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(10),
-            transforms.ColorJitter(0.05, 0.05, 0.05, 0.05)
-        ])
-        post_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            normalize
-        ])
-        val_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])
-        train_dataset = EasyDR(traindir, pre_transforms, post_transforms, alpha=0)
-        val_dataset = EasyDR(valdir, None, val_transforms, alpha=0)
-        print('load easy-classified dataset with 128 without boundary successfully!!!')
+        print('load DR with 128 successfully!!!')
+    elif args.data == './data/split_contrast_dataset':
+        mean = [0.7432, 0.661, 0.6283]
+        std = [0.0344, 0.0364, 0.0413]
+        print('load custom-defined skin dataset successfully!!!')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in "
-                         "['./data/target_128']")
-
+                         "['./data/target_128', ./data/split_contrast_dataset]")
+    traindir = os.path.join(args.data, 'train')
+    valdir = os.path.join(args.data, 'val')
+    normalize = transforms.Normalize(mean, std)
+    pre_transforms = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(10),
+        transforms.ColorJitter(0.05, 0.05, 0.05, 0.05)
+    ])
+    post_transforms = transforms.Compose([
+        transforms.ToTensor(),
+        normalize
+    ])
+    val_transforms = transforms.Compose([
+        transforms.ToTensor(),
+        normalize,
+    ])
+    train_dataset = EasyDR(traindir, pre_transforms, post_transforms, alpha=0)
+    val_dataset = EasyDR(valdir, None, val_transforms, alpha=0)
     train_loader = DataLoader(train_dataset,
                               batch_size=args.batch_size,
                               shuffle=True,
-                              num_workers=4,
+                              num_workers=2,
                               pin_memory=True if args.cuda else False)
     val_loader = DataLoader(val_dataset,
                             batch_size=args.batch_size,
                             shuffle=False,
-                            num_workers=1,
+                            num_workers=2,
                             pin_memory=True if args.cuda else False)
     return train_loader, val_loader
 
