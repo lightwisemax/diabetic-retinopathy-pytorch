@@ -11,7 +11,7 @@ from torchvision.transforms import transforms
 
 
 sys.path.append('../')
-from contrast.models import vgg
+from contrast.models import vgg19
 from networks.resnet import resnet18
 from utils.util import add_prefix, remove_prefix, write
 
@@ -19,7 +19,7 @@ from utils.util import add_prefix, remove_prefix, write
 def load_pretrained_model(pretrained_path, model_type):
     checkpoint = torch.load(add_prefix(pretrained_path, 'model_best.pth.tar'))
     if model_type == 'vgg':
-        model = vgg()
+        model = vgg19(pretrained=False, num_classes=2)
         print('load vgg successfully.')
     elif model_type == 'resnet':
         model = resnet18(is_ptrtrained=False)
@@ -30,8 +30,19 @@ def load_pretrained_model(pretrained_path, model_type):
     return model
 
 def preprocess(path):
-    mean = [0.651, 0.4391, 0.2991]
-    std = [0.1046, 0.0846, 0.0611]
+    """
+    images in custom-defiend skin dataset end with suffix .jpg while images in DR ends with suffix .jpeg
+    :param path:
+    :return:
+    """
+    if '.jpeg' in path:
+        mean = [0.651, 0.4391, 0.2991]
+        std = [0.1046, 0.0846, 0.0611]
+    elif '.jpg' in path:
+        mean = [0.7432, 0.661, 0.6283]
+        std = [0.0344, 0.0364, 0.0413]
+    else:
+        raise ValueError('')
     normalize = transforms.Normalize(mean, std)
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -59,7 +70,8 @@ def classifiy(data_dir, model):
     for phase in ['lesion', 'normal']:
         prob_lst = []
         path = '%s/%s_data_single' % (data_dir, phase)
-        for name in os.listdir(path):
+        total_nums = len(os.listdir(path))
+        for image_idx, name in enumerate(os.listdir(path), 1):
             abs_path = os.path.join(path, name)
             img_tensor = preprocess(abs_path)
             classes = {'lesion': 0,
@@ -69,6 +81,8 @@ def classifiy(data_dir, model):
             probs, idx = h_x.sort(0, True)
             if idx[0].item() == classes['normal']:
                 prob_lst.append(probs[0].item())
+            if image_idx % 50 == 0:
+                print('current:[%d/%d]' %(image_idx, total_nums))
         results[phase] = {'total': len(os.listdir(path)),
                           'converted_nums': len(prob_lst),
                           'converted_rate': round(len(prob_lst)/len(os.listdir(path)), 4),
