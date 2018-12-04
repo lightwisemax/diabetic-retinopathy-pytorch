@@ -108,8 +108,10 @@ class evaluate(object):
     def get_dataloader(self):
         if self.data == '../data/gan':
             print('load DR with size 128 successfully!!')
+        elif self.data == '../data/contrast_dataset':
+            print('load custom-defined skin dataset successfully!!!')
         else:
-            raise ValueError("the parameter data must be in ['./data/gan']")
+            raise ValueError("the parameter data must be in ['../data/gan', '../data/contrast_dataset']")
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
