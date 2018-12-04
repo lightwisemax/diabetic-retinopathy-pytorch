@@ -82,7 +82,7 @@ def classifiy(data_dir, model):
             if idx[0].item() == classes['normal']:
                 prob_lst.append(probs[0].item())
             if image_idx % 50 == 0:
-                print('current:[%d/%d]' %(image_idx, total_nums))
+                print('%s:[%d/%d]' %(phase, image_idx, total_nums))
         results[phase] = {'total': len(os.listdir(path)),
                           'converted_nums': len(prob_lst),
                           'converted_rate': round(len(prob_lst)/len(os.listdir(path)), 4),
