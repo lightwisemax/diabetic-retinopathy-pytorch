@@ -4,6 +4,7 @@ benchmark/
 reference/
 paper/
 .idea/
+preprocessing/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
