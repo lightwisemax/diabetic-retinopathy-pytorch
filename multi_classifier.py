@@ -36,11 +36,10 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool, help
 parser.add_argument('--step_size', default=50, type=int, help='learning rate decay interval')
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay scope')
 parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printing log frequence')
-parser.add_argument('--data', '-d', default='./data/target_128', chioces=['./data/split_contrast_dataset', './data/target_128'] , help='path to dataset')
+parser.add_argument('--data', '-d', default='./data/target_128', choices=['./data/split_contrast_dataset', './data/target_128'] , help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
 parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet18'])
-
 
 best_acc = 0.0
 
