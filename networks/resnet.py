@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # model = models.resnet18(pretrained=False)
 
     model = ResNet(BasicBlock, [2, 2, 2, 2])
-
+    print(model)
     from torchsummary import summary
 
     summary(model, (3, 128, 128))
