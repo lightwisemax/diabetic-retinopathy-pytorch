@@ -10,6 +10,7 @@ def main(dict_path):
     classes = {'lesion': 0,
                'normal': 1}
     data_dir = '../data/target_128'
+    # prediction results of images after training
     pred_dict = read(dict_path)
     results = dict()
     for phase in ['train', 'val']:
