@@ -35,12 +35,14 @@ parser.add_argument('--cuda', default=torch.cuda.is_available(), type=bool, help
 parser.add_argument('--step_size', default=50, type=int, help='learning rate decay interval')
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay scope')
 parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printing log frequence')
-parser.add_argument('--data', '-d', default='./data/target_128', choices=['./data/split_contrast_dataset', './data/target_128'] , help='path to dataset')
+parser.add_argument('--data', '-d', default='./data/target_128',
+                    choices=['./data/split_contrast_dataset', './data/target_128'], help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
 parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet'])
 
 best_acc = 0.0
+
 
 def main():
     global args, best_acc
@@ -91,6 +93,7 @@ def main():
     # save running parameter setting to json
     write(vars(args), add_prefix(args.prefix, 'paras.txt'))
 
+
 def model_selector(model_type):
     if model_type == 'vgg':
         return vgg19(pretrained=False, num_classes=2)
@@ -98,6 +101,7 @@ def model_selector(model_type):
         return resnet18(is_ptrtrained=False)
     else:
         raise ValueError('')
+
 
 def compute_validate_meter(model, best_model_path, val_loader):
     model.eval()
