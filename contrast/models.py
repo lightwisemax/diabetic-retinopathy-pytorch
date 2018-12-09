@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class VGG(nn.Module):
 
     def __init__(self, features, num_classes=1000, init_weights=True):
@@ -38,6 +39,7 @@ class VGG(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
+
 def make_layers(cfg, batch_norm=False):
     layers = []
     in_channels = 3
@@ -73,8 +75,10 @@ def vgg19(num_classes, pretrained=False):
         pass
     return model
 
+
+
 if __name__ == '__main__':
     net = vgg19(pretrained=False, num_classes=2)
-
+    print(net)
     x = torch.randn((2, 3, 128, 128))
     print(net(x))

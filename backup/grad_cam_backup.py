@@ -8,7 +8,7 @@ from torch.autograd import Variable
 
 sys.path.append('../')
 from contrast.models import vgg19
-from utils.util import add_prefix, remove_prefix, mkdir
+from utils.util import add_prefix, remove_prefix, mkdir, write
 
 
 class FeatureExtractor():
@@ -36,9 +36,9 @@ class FeatureExtractor():
 
 class ModelOutputs():
     """ Class for making a forward pass, and getting:
-	1. The network output.
-	2. Activations from intermeddiate targetted layers.
-	3. Gradients from intermeddiate targetted layers. """
+    1. The network output.
+    2. Activations from intermeddiate targetted layers.
+    3. Gradients from intermeddiate targetted layers. """
 
     def __init__(self, model, target_layers):
         self.model = model
@@ -56,11 +56,11 @@ class ModelOutputs():
 
 def preprocess_image(img, data_dir):
     if data_dir == '../data/target_128':
-        means = [0.651, 0.4391, 0.2991]
-        stds = [0.1046, 0.0846, 0.0611]
+        means=[0.651, 0.4391, 0.2991]
+        stds=[0.1046, 0.0846, 0.0611]
     elif data_dir == '../data/split_contrast_dataset':
-        means = [0.7432, 0.661, 0.6283]
-        stds = [0.0344, 0.0364, 0.0413]
+        means=[0.7432, 0.661, 0.6283]
+        stds=[0.0344, 0.0364, 0.0413]
     else:
         raise ValueError('')
 
@@ -75,13 +75,12 @@ def preprocess_image(img, data_dir):
     return input
 
 
-def show_cam_on_image(img, mask, path):
-    heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
+def show_cam_on_image(img, mask, saved_path):
+    heatmap = cv2.applyColorMap(np.uint8(255*mask), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
-    cam = heatmap + np.float32(img)
+    cam = 0.5 * heatmap + 0.3 * np.float32(img)
     cam = cam / np.max(cam)
-    cv2.imwrite(path, np.uint8(255 * cam))
-    # cv2.imwrite(path, np.uint8(255 * heatmap))
+    cv2.imwrite(saved_path, np.uint8(255 * cam))
 
 
 def load_pretrained_model(prefix):
@@ -89,6 +88,7 @@ def load_pretrained_model(prefix):
     model = vgg19(num_classes=2, pretrained=False)
     print('load pretrained vgg19 successfully.')
     model.load_state_dict(remove_prefix(checkpoint['state_dict']))
+    print('best acc=%.4f' % checkpoint['best_accuracy'])
     return model
 
 
@@ -130,55 +130,42 @@ class GradCam(object):
 
         for i, w in enumerate(weights):
             cam += w * target[i, :, :]
+
         cam = np.maximum(cam, 0)
         cam = cv2.resize(cam, (128, 128))
         cam = cam - np.min(cam)
         cam = cam / np.max(cam)
 
-        # get target classes and predicted probability
-        # logit = self.forward(input)
-        # h_x = F.softmax(logit, dim=1).data.squeeze()
-        # probs, idx = h_x.sort(0, True)
+        logit = self.forward(input)
+        h_x = F.softmax(logit, dim=1).data.squeeze()
+        probs, idx = h_x.sort(0, True)
         # print('predicted category=%s,probability=%.4f' % (self.classes[idx[0].item()], probs[0].item()))
-        return cam
-
-
-def select_visulization_nodes(data_dir):
-    """
-    select visulization nodes: DR: 35 comstom-defined skin dataset: 19
-    :param data_dir:
-    :return:
-    """
-    if data_dir == '../data/target_128':
-        print('select last node')
-        return ["35"]
-    elif data_dir == '../data/split_contrast_dataset':
-        print('select intermediate node')
-        # 19 best
-        return ["21"]
-    else:
-        raise ValueError('')
+        return cam, dict(category=self.classes[idx[0].item()], probability=probs[0].item())
 
 
 def main(prefix, data_dir, saved_path):
-    grad_cam = GradCam(model=load_pretrained_model(prefix), target_layer_names=select_visulization_nodes(data_dir))
-    # If None, returns the map for the highest scoring category.
-    # Otherwise, targets the requested index.
+    grad_cam = GradCam(model=load_pretrained_model(prefix), target_layer_names=["35"])
     target_index = None
+    idx = 0
     for phase in ['train', 'val']:
         path = os.path.join(data_dir, phase)
         parent_folder = '%s/%s' % (saved_path, phase)
-        mkdir(parent_folder)
         for name in os.listdir(path):
-            # if '.jpeg' not in name:
             if 'lesion' not in name:
                 continue
+            idx += 1
             image_path = os.path.join(path, name)
             img = cv2.imread(image_path, 1)
             img = np.float32(cv2.resize(img, (128, 128))) / 255
             input = preprocess_image(img, data_dir)
-            mask = grad_cam(input, target_index)
+            mask, info = grad_cam(input, target_index)
+
+            if idx % 50 == 0:
+                print('[%d/%d]' % (idx, len(os.listdir(path))))
+            parent_folder = '%s/%s' % (saved_path, phase)
+            mkdir(parent_folder)
             show_cam_on_image(img, mask, '%s/%s' % (parent_folder, name))
+
 
 
 if __name__ == '__main__':
@@ -188,9 +175,8 @@ if __name__ == '__main__':
     # reference: https://github.com/jacobgil/pytorch-grad-cam/blob/master/grad-cam.py
     """
     usage:
-    python cam.py ../classifier02 ../data/target128 ../grad_cam01
+    python grad_cam.py ../classifier02 ../data/target128 ../grad_cam01
     python grad_cam.py ../classifier07 ../data/split_contrast_dataset ../grad_cam02
-
     """
     prefix, data_dir, saved_path = sys.argv[1], sys.argv[2], sys.argv[3]
     main(prefix, data_dir, saved_path)

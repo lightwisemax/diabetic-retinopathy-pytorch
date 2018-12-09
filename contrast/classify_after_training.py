@@ -51,25 +51,24 @@ def preprocess(path):
     img_pil = Image.open(path)
     return transform(img_pil).unsqueeze(0)
 
-def main(data_dir, pretrained_path, model_type, saved_path):
+def main(data_dir, pretrained_path, model_type, saved_path, suffix):
     model = load_pretrained_model(pretrained_path, model_type)
     model.eval()
-    results = classifiy(data_dir, model)
+    results = classifiy(data_dir, model, suffix)
     print(str(results))
-    save_results(results, saved_path)
+    save_results(results, os.path.join(saved_path, suffix))
 
 
 def save_results(results, saved_path):
     if not os.path.exists(saved_path):
         os.makedirs(saved_path)
-    write(results, '%s/results.txt' % saved_path)
+    write(results, '%s/results.txt' % (saved_path))
 
 
-def classifiy(data_dir, model):
+def classifiy(data_dir, model, suffix):
     results = dict()
     for phase in ['lesion', 'normal']:
-        prob_lst = []
-        path = '%s/%s_data_single' % (data_dir, phase)
+        path = '%s/%s_data_%s' % (data_dir, phase, suffix)
         total_nums = len(os.listdir(path))
         for image_idx, name in enumerate(os.listdir(path), 1):
             abs_path = os.path.join(path, name)
@@ -79,22 +78,20 @@ def classifiy(data_dir, model):
             logit = model(img_tensor)
             h_x = F.softmax(logit, dim=1).data.squeeze()
             probs, idx = h_x.sort(0, True)
-            if idx[0].item() == classes['normal']:
-                prob_lst.append(probs[0].item())
+            label = 0 if 'lesion' in name else 1
+            results[name] = dict(label=label, pred=idx[0].item(), prob=probs[0].item())
             if image_idx % 50 == 0:
                 print('%s:[%d/%d]' %(phase, image_idx, total_nums))
-        results[phase] = {'total': len(os.listdir(path)),
-                          'converted_nums': len(prob_lst),
-                          'converted_rate': round(len(prob_lst)/len(os.listdir(path)), 4),
-                          'avg_prob': round(sum(prob_lst)/len(prob_lst), 4)
-        }
     return results
 
 
 if __name__ == '__main__':
-    """
-    usage:
-        python after_training.py ../gan174/all_results_499/ ../classifier01 ../gan174/all_results_499/after_training resnet
-    """
-    data_dir, pretrained_path, saved_path, model_type = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-    main(data_dir, pretrained_path, model_type, saved_path)
+    # classify dataset
+    main(data_dir='../gan174/all_results_499/', pretrained_path='../classifier06',
+         saved_path='../gan174/all_results_499/after_training',
+         model_type='resnet', suffix='single')
+    # note parameter should be in ['original', 'single']
+    main(data_dir='../gan174/all_results_499/', pretrained_path='../classifier06',
+         saved_path='../gan174/all_results_499/after_training',
+         model_type='resnet', suffix='original')
+

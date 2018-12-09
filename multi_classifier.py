@@ -18,10 +18,9 @@ import torchvision.transforms as transforms
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 
-
 sys.path.append('./')
-from networks.resnet import resnet18
 from contrast.models import vgg19
+from networks.resnet import resnet18
 
 from utils.util import set_prefix, write, add_prefix
 from utils.read_data import EasyDR
@@ -39,7 +38,7 @@ parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printin
 parser.add_argument('--data', '-d', default='./data/target_128', choices=['./data/split_contrast_dataset', './data/target_128'] , help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
-parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet18'])
+parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet'])
 
 best_acc = 0.0
 
@@ -79,7 +78,7 @@ def main():
         best_acc = max(cur_accuracy, best_acc)
         save_checkpoint({
             'epoch': epoch + 1,
-            'arch': 'resnet18',
+            'arch': args.model_type,
             'state_dict': model.state_dict(),
             'best_accuracy': best_acc,
             'optimizer': optimizer.state_dict(),
@@ -95,7 +94,7 @@ def main():
 def model_selector(model_type):
     if model_type == 'vgg':
         return vgg19(pretrained=False, num_classes=2)
-    elif model_type == 'resnet18':
+    elif model_type == 'resnet':
         return resnet18(is_ptrtrained=False)
     else:
         raise ValueError('')
@@ -271,7 +270,7 @@ def validate(model, val_loader, criterion):
         correct += pred.eq(target.data.view_as(pred)).long().cpu().sum()
 
     test_loss /= len(val_loader.dataset)
-    test_acc = 100. * correct / len(val_loader.dataset)
+    test_acc = 100. * correct.item() / len(val_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.3f}%)\n'.format(
         test_loss, correct, len(val_loader.dataset), test_acc))
     return test_acc
