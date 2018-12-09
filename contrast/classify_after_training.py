@@ -9,7 +9,6 @@ import torch.nn.functional as F
 from PIL import Image
 from torchvision.transforms import transforms
 
-
 sys.path.append('../')
 from contrast.models import vgg19
 from networks.resnet import resnet18
@@ -28,6 +27,7 @@ def load_pretrained_model(pretrained_path, model_type):
         raise ValueError('')
     model.load_state_dict(remove_prefix(checkpoint['state_dict']))
     return model
+
 
 def preprocess(path):
     """
@@ -50,6 +50,7 @@ def preprocess(path):
     ])
     img_pil = Image.open(path)
     return transform(img_pil).unsqueeze(0)
+
 
 def main(data_dir, pretrained_path, model_type, saved_path, suffix):
     model = load_pretrained_model(pretrained_path, model_type)
@@ -81,7 +82,7 @@ def classifiy(data_dir, model, suffix):
             label = 0 if 'lesion' in name else 1
             results[name] = dict(label=label, pred=idx[0].item(), prob=probs[0].item())
             if image_idx % 50 == 0:
-                print('%s:[%d/%d]' %(phase, image_idx, total_nums))
+                print('%s:[%d/%d]' % (phase, image_idx, total_nums))
     return results
 
 
@@ -94,4 +95,3 @@ if __name__ == '__main__':
     main(data_dir='../gan174/all_results_499/', pretrained_path='../classifier06',
          saved_path='../gan174/all_results_499/after_training',
          model_type='resnet', suffix='original')
-
