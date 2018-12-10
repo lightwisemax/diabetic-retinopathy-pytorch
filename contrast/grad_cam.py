@@ -80,8 +80,8 @@ def show_cam_on_image(img, mask, path):
     heatmap = np.float32(heatmap) / 255
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
-    cv2.imwrite(path, np.uint8(255 * cam))
-    # cv2.imwrite(path, np.uint8(255 * heatmap))
+    # cv2.imwrite(path, np.uint8(255 * cam))
+    cv2.imwrite(path, np.uint8(255 * heatmap))
 
 
 def load_pretrained_model(prefix):
