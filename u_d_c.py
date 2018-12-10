@@ -45,7 +45,7 @@ def main():
     args = parse_args()
     if args.training_strategies == 'update_c_d_u':
         trainer = update_c_d_u(args)
-        script_path = './training_strategies/update_c_d_u.py'
+        script_path = './u_d_c/update_c_d_u.py'
         print('training step:')
         print('(1)fix D, update C & U')
         print('2)fix C & G, update D')

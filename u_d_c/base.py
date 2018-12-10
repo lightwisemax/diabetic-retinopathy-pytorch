@@ -11,7 +11,7 @@ from torchvision.transforms import transforms
 from networks.discriminator import get_discriminator
 from networks.resnet import resnet18
 from networks.unet import UNet
-from utils.Logger import Logger
+# from utils.Logger import Logger
 from utils.read_data import ConcatDataset
 from utils.util import add_prefix, weight_to_cpu, rgb2gray, write_list, copy, write
 
@@ -43,7 +43,7 @@ class base(object):
         self.eta = args.eta
         self.interval = args.interval
         self.epochs = args.epochs
-        self.logger = Logger(add_prefix(self.prefix, 'tensorboard'))
+        # self.logger = Logger(add_prefix(self.prefix, 'tensorboard'))
         self.mean, self.std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
 
         self.dataloader = self.get_dataloader()

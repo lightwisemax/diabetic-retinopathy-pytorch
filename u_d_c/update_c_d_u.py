@@ -103,8 +103,8 @@ class update_c_d_u(base):
                     'w_distance': w_distance,
                     'lr': self.get_lr()
                 }
-                for tag, value in info.items():
-                    self.logger.scalar_summary(tag, value, step)
+                # for tag, value in info.items():
+                #     self.logger.scalar_summary(tag, value, step)
 
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
