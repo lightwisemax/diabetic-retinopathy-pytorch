@@ -1,13 +1,12 @@
 import torch
 from torch import nn
 from torch.autograd import grad
-from torch.optim import lr_scheduler
 
 from u_d_c.base import base
 from utils.tv_loss import TVLoss
 
 
-class update_c_d_u(base):
+class remove_lesion_constraint(base):
     def __init__(self, args):
         base.__init__(self, args)
         self.alpha = args.alpha
@@ -79,10 +78,12 @@ class update_c_d_u(base):
 
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()
-                lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
+                # lesion_l1_loss = (lesion_gradient * self.l1_criterion(fake_data, lesion_data)).mean()
                 # add total variable loss as a regularization term
                 tv_loss = self.tv_loss_criterion((fake_data - lesion_data))
-                u_loss_ = normal_l1_loss + lesion_l1_loss
+                # u_loss_ = normal_l1_loss + lesion_l1_loss
+                # remove l1 loss for lesion data
+                u_loss_ = normal_l1_loss
                 u_d_loss = self.alpha * d_loss_ + self.gamma * u_loss_ + self.theta * tv_loss
                 u_d_loss.backward()
 
@@ -102,13 +103,13 @@ class update_c_d_u(base):
 
                 if idx % self.interval == 0:
                     log = '[%d/%d] %.3f=%.3f(u_loss)+%.3f(c_loss), %.3f=%.3f(d_real_loss)+%.3f(d_fake_loss)+%.3f(gradient_penalty), ' \
-                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(lesion_l1_loss)+%.3f(tv_loss)' % (
+                          'w_distance: %.3f, %.3f(u_d_loss)=%.3f(d_loss_)+%.3f(normal_l1_loss)+%.3f(tv_loss)' % (
                               epoch, self.epochs, u_c_loss.item(), self.lmbda * u_loss.item(),
                               self.sigma * c_loss.item(),
                               d_loss.item(), d_real_loss.item(), d_fake_loss.item(), gradient_penalty.item(),
                               w_distance,
                               u_d_loss.item(), self.alpha * d_loss_.item(),
-                              self.gamma * normal_l1_loss.item(), self.gamma * lesion_l1_loss.item(),
+                              self.gamma * normal_l1_loss.item(),
                               self.theta * tv_loss.item())
                     print(log)
                     self.log_lst.append(log)

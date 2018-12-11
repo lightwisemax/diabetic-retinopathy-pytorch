@@ -1,3 +1,6 @@
+"""
+add l1 loss on normal and lesion
+"""
 import torch
 from torch import nn
 from torch.autograd import grad
@@ -7,7 +10,7 @@ from u_d_c.base import base
 from utils.tv_loss import TVLoss
 
 
-class update_c_d_u(base):
+class add_normal_constraint(base):
     def __init__(self, args):
         base.__init__(self, args)
         self.alpha = args.alpha
@@ -19,7 +22,6 @@ class update_c_d_u(base):
         self.cross_entropy = nn.CrossEntropyLoss().cuda()
         self.l1_criterion = nn.L1Loss(reduce=False).cuda()
         self.tv_loss_criterion = TVLoss().cuda()
-
 
     def train(self, epoch):
         for idx, data in enumerate(self.dataloader, 1):
@@ -74,8 +76,8 @@ class update_c_d_u(base):
             # update u
             if step > self.pretrained_steps:
                 self.u_optimizer.zero_grad()
-                dis_output = self.d(fake_data)
-                d_loss_ = -torch.mean(dis_output)
+                # add l1 loss on lesion and normal data synchronously
+                d_loss_ = -(torch.mean(self.d(fake_data)) + torch.mean(self.d(real_data)))
 
                 real_data_ = self.auto_encoder(real_data)
                 normal_l1_loss = (normal_gradient * self.l1_criterion(real_data_, real_data)).mean()

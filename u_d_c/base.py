@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import torch
 from torch.nn import DataParallel
+from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 
@@ -43,6 +44,7 @@ class base(object):
         self.eta = args.eta
         self.interval = args.interval
         self.epochs = args.epochs
+        self.local = args.local
         # self.logger = Logger(add_prefix(self.prefix, 'tensorboard'))
         self.mean, self.std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]
 
@@ -129,7 +131,12 @@ class base(object):
             total_ptime // 60, total_ptime % 60))
 
     def get_optimizer(self):
-        pass
+        self.u_optimizer = torch.optim.Adam(self.auto_encoder.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
+        self.d_optimizer = torch.optim.Adam(self.d.parameters(), lr=self.lr, betas=(self.beta1, 0.9))
+        self.c_optimizer = torch.optim.Adam(self.classifier.parameters(), lr=self.lr, betas=(0.9, 0.999))
+        self.u_lr_scheduler = lr_scheduler.ExponentialLR(self.u_optimizer, gamma=self.epsi)
+        self.d_lr_scheduler = lr_scheduler.ExponentialLR(self.d_optimizer, gamma=self.epsi)
+        self.c_lr_scheduler = lr_scheduler.ExponentialLR(self.c_optimizer, gamma=self.epsi)
 
     def save_init_paras(self):
         if not os.path.exists(self.prefix):
@@ -162,12 +169,20 @@ class base(object):
         return unet
 
     def get_dataloader(self):
-        if self.data == './data/gan':
-            print('load DR with size 128 successfully!!')
-        elif self.data == './data/contrast_dataset':
-            print('load contrast dataset with size 128 successfully!!')
+        if self.local:
+            print('load data from local.')
+            if self.data == '/data/zhangrong/gan':
+                print('load DR with size 128 successfully!!')
+            else:
+                raise ValueError("the parameter data must be in ['/data/zhangrong/gan']")
         else:
-            raise ValueError("the parameter data must be in ['./data/gan']")
+            print('load data from data center.')
+            if self.data == './data/gan':
+                print('load DR with size 128 successfully!!')
+            elif self.data == './data/contrast_dataset':
+                print('load contrast dataset with size 128 successfully!!')
+            else:
+                raise ValueError("the parameter data must be in ['./data/gan']")
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(self.mean, self.std)
@@ -241,3 +256,10 @@ class base(object):
         for param_group in self.d_optimizer.param_groups:
             lr += [param_group['lr']]
         return lr[0]
+
+    def shuffle(self, lesion_data, normal_data, lesion_labels, normal_labels, lesion_gradients, normal_gradients):
+        inputs, labels, gradients = torch.cat((lesion_data, normal_data), 0), torch.cat(
+            (lesion_labels, normal_labels)), torch.cat((lesion_gradients, normal_gradients), 0)
+        shuffled_index = torch.randperm(inputs.size(0)).cuda()
+        return inputs.index_select(0, shuffled_index), labels.index_select(0, shuffled_index), gradients.index_select(0,
+                                                                                                                      shuffled_index)
