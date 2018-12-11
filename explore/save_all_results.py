@@ -110,6 +110,9 @@ class evaluate(object):
             print('load DR with size 128 successfully!!')
         elif self.data == '../data/contrast_dataset':
             print('load custom-defined skin dataset successfully!!!')
+        elif self.data == '/data/zhangrong/val':
+            print('load data from local center.')
+            print('load validation sets of DR successfully.')
         else:
             raise ValueError("the parameter data must be in ['../data/gan', '../data/contrast_dataset']")
         transform = transforms.Compose([
@@ -122,7 +125,7 @@ class evaluate(object):
                                 )
         data_loader = DataLoader(dataset,
                                  batch_size=self.batch_size,
-                                 shuffle=True,
+                                 shuffle=False,
                                  num_workers=2,
                                  drop_last=False,
                                  pin_memory=False)
@@ -149,6 +152,7 @@ if __name__ == '__main__':
     usage:
     python save_all_results.py gan156 499 ../data/gan15
     python save_all_results.py gan156 499 ../data/gan15 false
+    python save_all_results.py gan174 499 /data/zhangrong/val
     note: the frist parameter denotes  parent folder and the second parameter denotes the status of model
     """
     if len(sys.argv) == 4:
