@@ -150,7 +150,7 @@ def train(data_loader, model, optimizer, criterion, epoch):
 
 def validate(model, epoch, data_loader):
     for i, (lesion_data, _, lesion_names, _, real_data, _, normal_names, _) in enumerate(data_loader):
-        if i > 2:
+        if i > 2 and epoch != args.epochs:
             break
         if args.cuda:
             lesion_data, real_data = lesion_data.cuda(), real_data.cuda()
