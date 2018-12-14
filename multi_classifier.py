@@ -36,7 +36,7 @@ parser.add_argument('--step_size', default=50, type=int, help='learning rate dec
 parser.add_argument('--gamma', default=0.1, type=float, help='learning rate decay scope')
 parser.add_argument('--interval_freq', '-i', default=12, type=int, help='printing log frequence')
 parser.add_argument('--data', '-d', default='./data/target_128',
-                    choices=['./data/split_contrast_dataset', './data/target_128'], help='path to dataset')
+                    choices=['./data/split_contrast_dataset', './data/target_128', './contrast/gan174_output'], help='path to dataset')
 parser.add_argument('--prefix', '-p', default='classifier', type=str, help='folder prefix')
 parser.add_argument('--best_model_path', default='model_best.pth.tar', help='best model saved path')
 parser.add_argument('--model_type', '-m', default='vgg', type=str, help='classifier type', choices=['vgg', 'resnet'])
@@ -187,6 +187,10 @@ def load_dataset():
         mean = [0.7432, 0.661, 0.6283]
         std = [0.0344, 0.0364, 0.0413]
         print('load custom-defined skin dataset successfully!!!')
+    elif args.data == './contrast/gan174_output':
+        mean = [0.7672, 0.5209, 0.3615]
+        std = [0.0865, 0.079, 0.0618]
+        print('load UNet outputs successfully!!!')
     else:
         raise ValueError("parameter 'data' that means path to dataset must be in "
                          "['./data/target_128', ./data/split_contrast_dataset]")
