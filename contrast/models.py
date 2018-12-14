@@ -39,7 +39,6 @@ class VGG(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-
 def make_layers(cfg, batch_norm=False):
     layers = []
     in_channels = 3
@@ -74,7 +73,6 @@ def vgg19(num_classes, pretrained=False):
     if pretrained:
         pass
     return model
-
 
 
 if __name__ == '__main__':
