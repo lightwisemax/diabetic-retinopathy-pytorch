@@ -5,6 +5,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+
+import pylab
 import torch
 from PIL import Image
 from sklearn.metrics import roc_curve, auc
@@ -134,19 +136,6 @@ def plot_roc_curve(our_scores, our_true, cam_scores, cam_true, grad_scores, grad
     cam_fpr, cam_tpr, _ = roc_curve(cam_true, cam_scores)
     grad_fpr, grad_tpr, _ = roc_curve(grad_true, grad_scores)
     our_fpr, our_tpr, _ = roc_curve(our_true, our_scores)
-    # plt.title('ROC curve')
-    plt.xlabel('false positive rate')
-    plt.ylabel('true positive rate')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-
-    plt.plot(cam_fpr, cam_tpr, color='green', label='cam', linewidth=1.0)
-    plt.plot(grad_fpr, grad_tpr, color='red', label='grad-cam', linewidth=1.5)
-    plt.plot(our_fpr, our_tpr, color='skyblue', label='our', linewidth=2.0)
-    plt.legend()
-    plt.savefig(os.path.join(saved_path, 'roc_curve.png'))
-    plt.close()
-    print('plot roc curve successfully.')
 
     cam_roc_auc = auc(cam_fpr, cam_tpr)
     grad_roc_auc = auc(grad_fpr, grad_tpr)
@@ -154,6 +143,38 @@ def plot_roc_curve(our_scores, our_true, cam_scores, cam_true, grad_scores, grad
     auc_scores = dict(cam_roc_auc=cam_roc_auc, grad_roc_auc=grad_roc_auc, our_roc_auc=our_roc_auc)
     print(auc_scores)
     write(auc_scores, '%s/auc_scores.txt' % saved_path)
+
+    fig_width_pt = 246.0  # Get this from LaTeX using \showthe\columnwidth
+    inches_per_pt = 1.0 / 72.27  # Convert pt to inch
+    golden_mean = (pylab.sqrt(5) - 1.0) / 2.0  # Aesthetic ratio
+    fig_width = fig_width_pt * inches_per_pt  # width in inches
+    fig_height = fig_width * golden_mean  # height in inches
+    fig_size = [fig_width, fig_height]
+    params = {'backend': 'ps',
+              'axes.labelsize': 8,
+              'text.fontsize': 8,
+              'legend.fontsize': 8,
+              'xtick.labelsize': 8,
+              'ytick.labelsize': 8,
+              'text.usetex': True,
+              'figure.figsize': fig_size}
+    pylab.rcParams.update(params)
+    # Generate data
+
+    # plot vectorgraph
+    pylab.figure(1)
+    pylab.clf()
+    pylab.axes([0.125, 0.2, 0.95 - 0.125, 0.95 - 0.2])
+    pylab.plot(cam_fpr, cam_tpr, 'b', label='CAM(AUC=$%.3f$)' % cam_roc_auc)
+    pylab.plot(grad_fpr, grad_tpr, 'r', label='Grad-CAM(AUC=$%.3f$)' % grad_roc_auc)
+    pylab.plot(our_fpr, our_tpr, 'g', label='Our(AUC=$%.3f$)' % our_roc_auc)
+    pylab.xlabel('false positive rate')
+    pylab.ylabel('true positive rate')
+    pylab.xlim([0.0, 1.0])
+    pylab.ylim([0.0, 1.05])
+    pylab.legend()
+    pylab.savefig(os.path.join(saved_path, 'roc_curve.eps'))
+    print('plot roc curve successfully.')
 
 
 def load_pretrained_model(prefix, model_type):
