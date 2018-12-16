@@ -5,6 +5,9 @@ reference/
 paper/
 .idea/
 preprocessing/
+assert/
+contrast/gan174_output
+*.xlsx
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
