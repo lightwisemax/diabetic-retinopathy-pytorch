@@ -2,7 +2,6 @@ import torch
 import cv2
 import os
 import sys
-import torch.nn.functional as F
 import numpy as np
 from torch.autograd import Variable
 
@@ -78,8 +77,8 @@ def preprocess_image(img, data_dir):
 def show_cam_on_image(img, mask, path):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
-    cam = heatmap + np.float32(img)
-    cam = cam / np.max(cam)
+    # cam = heatmap + np.float32(img)
+    # cam = cam / np.max(cam)
     # cv2.imwrite(path, np.uint8(255 * cam))
     cv2.imwrite(path, np.uint8(255 * heatmap))
 
@@ -151,7 +150,11 @@ def select_visulization_nodes(data_dir):
     """
     if data_dir == '../data/target_128':
         print('select last node')
-        return ["35"]
+        # return ["35"] last layer
+        # return ["29"]    # grad_cam07
+        # return ["19"]  # grad_cam08
+        return ["15"]  # grad_cam10 效果不佳
+        # return  ["17"]  # grad_cam09
     elif data_dir == '../data/split_contrast_dataset':
         print('select intermediate node')
         # 19 best
@@ -171,7 +174,8 @@ def main(prefix, data_dir, saved_path):
         mkdir(parent_folder)
         for name in os.listdir(path):
             # if '.jpeg' not in name:
-            if 'lesion' not in name:
+            # if 'lesion' not in name:
+            if name not  in ['lesion_3444_right.jpeg', 'lesion_5872_right.jpeg', 'lesion_6990_right.jpeg']:
                 continue
             image_path = os.path.join(path, name)
             img = cv2.imread(image_path, 1)
@@ -188,7 +192,7 @@ if __name__ == '__main__':
     # reference: https://github.com/jacobgil/pytorch-grad-cam/blob/master/grad-cam.py
     """
     usage:
-    python cam.py ../classifier02 ../data/target128 ../grad_cam01
+    python gard_cam.py ../classifier02 ../data/target128 ../grad_cam01
     python grad_cam.py ../classifier07 ../data/split_contrast_dataset ../grad_cam02
 
     """
