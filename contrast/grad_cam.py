@@ -153,8 +153,9 @@ def select_visulization_nodes(data_dir):
         # return ["35"] last layer
         # return ["29"]    # grad_cam07
         # return ["19"]  # grad_cam08
-        return ["15"]  # grad_cam10 效果不佳
+        # return ["15"]  # grad_cam10 效果不佳
         # return  ["17"]  # grad_cam09
+        return ["31"] # grad_cam11
     elif data_dir == '../data/split_contrast_dataset':
         print('select intermediate node')
         # 19 best
